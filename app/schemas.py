@@ -47,6 +47,9 @@ class ParentAdminResponse(BaseModel):
     full_name: str | None = None
     phone: str | None = None
     created_at: datetime
+    consent_accepted_at: datetime | None = None
+    trial_expires_at: datetime | None = None
+    access_active: bool
     subscription_active: bool
     subscription_expires_at: datetime | None = None
     children: list[LinkedStudentResponse]

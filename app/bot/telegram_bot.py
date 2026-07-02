@@ -3,13 +3,18 @@ import logging
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import SessionLocal
 from app.services.attendance import get_or_create_parent, get_student_by_code, link_parent_to_student
-from app.services.subscriptions import format_subscription_status, is_subscription_active
+from app.services.subscriptions import (
+    accept_consent,
+    format_subscription_status,
+    has_accepted_consent,
+    is_access_active,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,23 +35,101 @@ def get_db_session() -> Session:
     return SessionLocal()
 
 
+def consent_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Roziman, davom etish", callback_data="accept_consent")]
+        ]
+    )
+
+
+def consent_text() -> str:
+    return (
+        "📄 <b>Ota-ona rozilik shartnomasi</b>\n\n"
+        f"{settings.parent_consent_text}\n\n"
+        "✅ Rozilik bildirganingizdan so'ng 3 kun bepul foydalanish boshlanadi.\n"
+        "💳 4-kundan boshlab xabar olish uchun obuna talab qilinadi."
+    )
+
+
+async def send_consent_prompt(message: Message) -> None:
+    await message.answer(consent_text(), reply_markup=consent_keyboard(), parse_mode="HTML")
+
+
 @dp.message(CommandStart())
 async def cmd_start(message: Message) -> None:
     text = (
         f"👋 Assalomu alaykum!\n\n"
         f"<b>{settings.school_name}</b> davomat tizimiga xush kelibsiz.\n\n"
         f"Farzandingiz maktabga kirgani yoki chiqqani haqida "
-        f"darhol xabar olish uchun ro'yxatdan o'ting.\n\n"
+        f"xabar olish uchun avval rozilik shartnomasini tasdiqlang.\n\n"
+        f"📌 <b>1-qadam:</b> /rozilik\n"
+        f"📌 <b>2-qadam:</b> <code>/royxat KOD</code>\n\n"
+        f"Rozilikdan keyin {settings.free_trial_days} kun bepul foydalanasiz. "
+        f"Keyin obuna talab qilinadi.\n\n"
         f"📌 <b>Ro'yxatdan o'tish:</b>\n"
         f"<code>/royxat KOD</code>\n\n"
         f"Maktabdan berilgan ro'yxatdan o'tish kodini kiriting.\n"
         f"Misol: <code>/royxat ABC12345</code>\n\n"
         f"📋 Boshqa buyruqlar:\n"
+        f"/rozilik — shartnomani o'qish va tasdiqlash\n"
         f"/farzandlar — bog'langan farzandlar\n"
         f"/tolov — obuna va to'lov ma'lumotlari\n"
         f"/yordam — yordam"
     )
     await message.answer(text, parse_mode="HTML")
+    await send_consent_prompt(message)
+
+
+@dp.message(Command("rozilik"))
+async def cmd_consent(message: Message) -> None:
+    db = get_db_session()
+    try:
+        parent = get_or_create_parent(
+            db,
+            telegram_id=message.from_user.id,
+            full_name=message.from_user.full_name,
+        )
+        if has_accepted_consent(parent):
+            await message.answer(
+                "✅ Siz rozilik shartnomasini tasdiqlagansiz.\n\n"
+                f"{format_subscription_status(db, parent.id)}",
+                parse_mode="HTML",
+            )
+            return
+    finally:
+        db.close()
+
+    await send_consent_prompt(message)
+
+
+@dp.callback_query(F.data == "accept_consent")
+async def accept_consent_callback(callback: CallbackQuery) -> None:
+    db = get_db_session()
+    try:
+        parent = get_or_create_parent(
+            db,
+            telegram_id=callback.from_user.id,
+            full_name=callback.from_user.full_name,
+        )
+        was_accepted = has_accepted_consent(parent)
+        parent = accept_consent(db, parent)
+        await callback.answer("Rozilik qabul qilindi")
+        text = (
+            "✅ <b>Roziligingiz qabul qilindi.</b>\n\n"
+            if not was_accepted
+            else "ℹ️ <b>Rozilik oldin tasdiqlangan.</b>\n\n"
+        )
+        text += (
+            f"{settings.free_trial_days} kunlik bepul sinov muddati faol.\n"
+            f"Tugash sanasi: {parent.trial_expires_at.strftime('%d.%m.%Y')}\n\n"
+            "Endi farzandingiz kodini yuboring:\n"
+            "<code>/royxat KOD</code>"
+        )
+        if callback.message:
+            await callback.message.answer(text, parse_mode="HTML")
+    finally:
+        db.close()
 
 
 @dp.message(Command("royxat"))
@@ -68,6 +151,19 @@ async def cmd_register(message: Message) -> None:
     code = parts[1].strip().upper()
     db = get_db_session()
     try:
+        parent = get_or_create_parent(
+            db,
+            telegram_id=message.from_user.id,
+            full_name=message.from_user.full_name,
+        )
+        if not has_accepted_consent(parent):
+            await message.answer(
+                "📄 Ro'yxatdan o'tishdan oldin rozilik shartnomasini tasdiqlang.",
+                parse_mode="HTML",
+            )
+            await send_consent_prompt(message)
+            return
+
         student = get_student_by_code(db, code)
         if student is None:
             await message.answer(
@@ -76,17 +172,12 @@ async def cmd_register(message: Message) -> None:
             )
             return
 
-        parent = get_or_create_parent(
-            db,
-            telegram_id=message.from_user.id,
-            full_name=message.from_user.full_name,
-        )
         linked = link_parent_to_student(db, parent, student)
 
         if linked:
             subscription_note = (
-                "✅ Obunangiz faol, xabarlar yuboriladi."
-                if is_subscription_active(db, parent.id)
+                "✅ Foydalanish muddatingiz faol, xabarlar yuboriladi."
+                if is_access_active(db, parent)
                 else "💳 Xabar olish uchun /tolov buyrug'i orqali obunani faollashtiring."
             )
             await message.answer(
@@ -111,6 +202,12 @@ async def cmd_children(message: Message) -> None:
     db = get_db_session()
     try:
         parent = get_or_create_parent(db, telegram_id=message.from_user.id)
+        if not has_accepted_consent(parent):
+            await message.answer(
+                "📄 Avval rozilik shartnomasini tasdiqlang: /rozilik",
+                parse_mode="HTML",
+            )
+            return
         students = [link.student for link in parent.student_links]
 
         if not students:
@@ -165,6 +262,7 @@ async def cmd_payment(message: Message) -> None:
 async def cmd_help(message: Message) -> None:
     await message.answer(
         "📖 <b>Yordam</b>\n\n"
+        "<b>/rozilik</b> — shartnomani o'qish va tasdiqlash\n"
         "<b>/royxat KOD</b> — farzandni bog'lash\n"
         "<b>/farzandlar</b> — bog'langan farzandlar ro'yxati\n"
         "<b>/tolov</b> — obuna holati va to'lov yo'riqnomasi\n"

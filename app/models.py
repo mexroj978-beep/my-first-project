@@ -27,6 +27,8 @@ class Parent(Base):
     telegram_id: Mapped[int] = mapped_column(unique=True, index=True)
     full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    consent_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    trial_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     student_links: Mapped[list["ParentStudent"]] = relationship(back_populates="parent")

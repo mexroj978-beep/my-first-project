@@ -1,5 +1,5 @@
 import calendar
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -37,6 +37,34 @@ def get_subscription_expires_at(db: Session, parent_id: int) -> datetime | None:
     return ensure_aware(payment.expires_at)
 
 
+def has_accepted_consent(parent: Parent) -> bool:
+    return parent.consent_accepted_at is not None
+
+
+def accept_consent(db: Session, parent: Parent, now: datetime | None = None) -> Parent:
+    accepted_at = now or utc_now()
+    if parent.consent_accepted_at is None:
+        parent.consent_accepted_at = accepted_at
+    if parent.trial_expires_at is None:
+        parent.trial_expires_at = accepted_at + timedelta(days=settings.free_trial_days)
+    db.commit()
+    db.refresh(parent)
+    return parent
+
+
+def get_trial_expires_at(parent: Parent) -> datetime | None:
+    if parent.trial_expires_at is None:
+        return None
+    return ensure_aware(parent.trial_expires_at)
+
+
+def is_trial_active(parent: Parent, now: datetime | None = None) -> bool:
+    trial_expires_at = get_trial_expires_at(parent)
+    if trial_expires_at is None:
+        return False
+    return trial_expires_at >= (now or utc_now())
+
+
 def is_subscription_active(db: Session, parent_id: int, now: datetime | None = None) -> bool:
     expires_at = get_subscription_expires_at(db, parent_id)
     if expires_at is None:
@@ -44,10 +72,35 @@ def is_subscription_active(db: Session, parent_id: int, now: datetime | None = N
     return expires_at >= (now or utc_now())
 
 
+def is_access_active(db: Session, parent: Parent, now: datetime | None = None) -> bool:
+    current_time = now or utc_now()
+    return is_trial_active(parent, current_time) or is_subscription_active(db, parent.id, current_time)
+
+
+def get_access_expires_at(db: Session, parent: Parent) -> datetime | None:
+    trial_expires_at = get_trial_expires_at(parent)
+    subscription_expires_at = get_subscription_expires_at(db, parent.id)
+    dates = [value for value in [trial_expires_at, subscription_expires_at] if value is not None]
+    if not dates:
+        return None
+    return max(dates)
+
+
 def format_subscription_status(db: Session, parent_id: int) -> str:
+    parent = db.query(Parent).filter(Parent.id == parent_id).first()
+    if parent is None:
+        return "Ota-ona topilmadi."
+
+    if not has_accepted_consent(parent):
+        return "Rozilik shartnomasi hali tasdiqlanmagan. Avval /rozilik buyrug'idan foydalaning."
+
+    trial_expires_at = get_trial_expires_at(parent)
+    if trial_expires_at and trial_expires_at >= utc_now():
+        return f"3 kunlik bepul sinov faol. Tugash sanasi: {trial_expires_at.strftime('%d.%m.%Y')}"
+
     expires_at = get_subscription_expires_at(db, parent_id)
     if expires_at is None:
-        return "Obuna hali faollashtirilmagan."
+        return "Bepul sinov muddati tugagan. Xabar olish uchun obuna talab qilinadi."
 
     expires_at = ensure_aware(expires_at)
     if expires_at >= utc_now():

@@ -19,7 +19,7 @@ from app.schemas import (
 )
 from app.services.attendance import generate_registration_code, process_turnstile_event
 from app.services.subscriptions import create_payment as create_parent_payment
-from app.services.subscriptions import get_subscription_expires_at, is_subscription_active
+from app.services.subscriptions import get_subscription_expires_at, is_access_active, is_subscription_active
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -126,6 +126,9 @@ def build_parent_response(db: Session, parent: Parent) -> ParentAdminResponse:
         full_name=parent.full_name,
         phone=parent.phone,
         created_at=parent.created_at,
+        consent_accepted_at=parent.consent_accepted_at,
+        trial_expires_at=parent.trial_expires_at,
+        access_active=is_access_active(db, parent),
         subscription_active=is_subscription_active(db, parent.id),
         subscription_expires_at=expires_at,
         children=children,

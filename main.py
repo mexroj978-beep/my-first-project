@@ -92,7 +92,10 @@ def admin_panel() -> str:
           <th>Telegram ID</th>
           <th>Ism</th>
           <th>Farzandlar</th>
-          <th>Obuna</th>
+          <th>Rozilik</th>
+          <th>Trial</th>
+          <th>Foydalanish</th>
+          <th>Pullik obuna</th>
           <th>Muddati</th>
         </tr>
       </thead>
@@ -132,8 +135,15 @@ def admin_panel() -> str:
             <td>${parent.telegram_id}</td>
             <td>${parent.full_name || '-'}</td>
             <td>${parent.children.map(child => `${child.full_name} (${child.class_name})`).join('<br>') || '-'}</td>
+            <td class="${parent.consent_accepted_at ? 'active' : 'inactive'}">
+              ${parent.consent_accepted_at ? 'Berilgan' : 'Yo\\'q'}
+            </td>
+            <td>${formatDate(parent.trial_expires_at)}</td>
+            <td class="${parent.access_active ? 'active' : 'inactive'}">
+              ${parent.access_active ? 'Faol' : 'Faol emas'}
+            </td>
             <td class="${parent.subscription_active ? 'active' : 'inactive'}">
-              ${parent.subscription_active ? 'Faol' : 'Faol emas'}
+              ${parent.subscription_active ? 'Faol' : 'Yo\\'q'}
             </td>
             <td>${formatDate(parent.subscription_expires_at)}</td>
           </tr>

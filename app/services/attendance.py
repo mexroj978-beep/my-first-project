@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import AttendanceEvent, Parent, ParentStudent, Student
-from app.services.subscriptions import is_subscription_active
+from app.services.subscriptions import is_access_active
 
 
 def generate_registration_code(length: int = 8) -> str:
@@ -59,7 +59,7 @@ def get_parents_for_student(db: Session, student_id: int) -> list[Parent]:
 
 
 def get_active_parents_for_student(db: Session, student_id: int) -> list[Parent]:
-    return [parent for parent in get_parents_for_student(db, student_id) if is_subscription_active(db, parent.id)]
+    return [parent for parent in get_parents_for_student(db, student_id) if is_access_active(db, parent)]
 
 
 def format_notification(student: Student, event_type: str, event_time: datetime) -> str:

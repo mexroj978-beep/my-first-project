@@ -6,6 +6,8 @@ Tirniket (turniket) tizimi bilan integratsiya qilinadigan va ota-onalarga **Tele
 
 - **Tirniket integratsiyasi** — HTTP webhook orqali kirish/chiqish voqealarini qabul qilish
 - **Telegram bot** — ota-onalar farzandlarini ro'yxatdan o'tkazadi va bildirishnoma oladi
+- **Rozilik shartnomasi** — ota-ona botda shartnomani tasdiqlagandan keyin ulanadi
+- **3 kunlik bepul sinov** — rozilikdan keyin avtomatik trial boshlanadi
 - **Oylik obuna** — xabarlar faqat obunasi faol ota-onalarga yuboriladi
 - **Admin panel** — ota-onalar va to'lovlarni brauzer orqali boshqarish
 - **O'zbek tilida** xabarlar va buyruqlar
@@ -52,7 +54,9 @@ TURNSTILE_API_KEY=turnstile_maxfiy_kalit
 ADMIN_API_KEY=admin_maxfiy_kalit
 SCHOOL_NAME=Maktab nomi
 MONTHLY_SUBSCRIPTION_AMOUNT=30000
+FREE_TRIAL_DAYS=3
 PAYMENT_INSTRUCTIONS=To'lov uchun maktab kassasi yoki karta raqamiga to'lang. Chekni admin tasdiqlaydi.
+PARENT_CONSENT_TEXT=Men farzandimning maktabga kirish va chiqish vaqtlari tirniket tizimi orqali qayd etilishi hamda ushbu ma'lumotlar Telegram bot orqali menga xabar sifatida yuborilishiga rozilik bildiraman. Botdan foydalanish uchun dastlab 3 kun bepul sinov muddati beriladi, 4-kundan boshlab pullik obuna talab qilinishini tushunaman.
 ```
 
 ### 4. Ishga tushirish
@@ -85,11 +89,23 @@ Bu kodni ota-onaga bering — ular botda `/royxat XK7M2P9A` deb yozadi.
 ### Ota-ona ro'yxatdan o'tishi (Telegram)
 
 1. Botga `/start` yuborish
-2. `/royxat ABC12345` — maktabdan olingan kod bilan bog'lash
-3. `/tolov` — oylik obuna holati va to'lov yo'riqnomasini ko'rish
-4. `/farzandlar` — bog'langan farzandlarni ko'rish
+2. `/rozilik` — rozilik shartnomasini o'qish va tasdiqlash
+3. Rozilikdan keyin 3 kunlik bepul sinov avtomatik boshlanadi
+4. `/royxat ABC12345` — maktabdan olingan kod bilan bog'lash
+5. `/tolov` — oylik obuna holati va to'lov yo'riqnomasini ko'rish
+6. `/farzandlar` — bog'langan farzandlarni ko'rish
 
-> Eslatma: ota-ona ro'yxatdan o'tgandan keyin ham xabar olish uchun obunasi faol bo'lishi kerak.
+> Eslatma: ota-ona 3 kunlik trial vaqtida bepul xabar oladi. 4-kundan boshlab xabar olish uchun pullik obuna faol bo'lishi kerak.
+
+### Rozilik shartnomasi
+
+Botdagi `/rozilik` buyrug'i ota-onaga shartnoma matnini ko'rsatadi. Ota-ona `✅ Roziman, davom etish` tugmasini bosgach:
+
+- rozilik vaqti bazaga yoziladi
+- 3 kunlik bepul sinov muddati boshlanadi
+- ota-ona farzandini `/royxat KOD` orqali bog'lashi mumkin bo'ladi
+
+Standart shartnoma matni `.env` dagi `PARENT_CONSENT_TEXT` orqali o'zgartiriladi.
 
 ### Tirniket integratsiyasi
 
@@ -130,6 +146,8 @@ X-Api-Key: turnstile_maxfiy_kalit
 Brauzerda `http://localhost:8000/admin` sahifasini oching, `ADMIN_API_KEY` ni kiriting va:
 
 - ota-onalar ro'yxatini ko'ring
+- rozilik bergan ota-onalarni ko'ring
+- 3 kunlik trial muddati qachon tugashini ko'ring
 - qaysi ota-onaning obunasi faol yoki muddati tugaganini tekshiring
 - to'lov kiritib obunani 1 yoki bir nechta oyga uzaytiring
 
