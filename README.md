@@ -6,6 +6,8 @@ Tirniket (turniket) tizimi bilan integratsiya qilinadigan va ota-onalarga **Tele
 
 - **Tirniket integratsiyasi** — HTTP webhook orqali kirish/chiqish voqealarini qabul qilish
 - **Telegram bot** — ota-onalar farzandlarini ro'yxatdan o'tkazadi va bildirishnoma oladi
+- **Oylik obuna** — xabarlar faqat obunasi faol ota-onalarga yuboriladi
+- **Admin panel** — ota-onalar va to'lovlarni brauzer orqali boshqarish
 - **O'zbek tilida** xabarlar va buyruqlar
 - **Admin API** — o'quvchilarni tizimga qo'shish
 - **CLI skript** — tez o'quvchi qo'shish
@@ -17,7 +19,7 @@ O'quvchi kartani tirniketga tekkizadi
         ↓
 Tirniket tizimi → POST /api/turnstile/event
         ↓
-Dastur o'quvchini topadi → bog'langan ota-onalarga Telegram xabar yuboradi
+Dastur o'quvchini topadi → obunasi faol ota-onalarga Telegram xabar yuboradi
 ```
 
 ## O'rnatish
@@ -49,6 +51,8 @@ TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
 TURNSTILE_API_KEY=turnstile_maxfiy_kalit
 ADMIN_API_KEY=admin_maxfiy_kalit
 SCHOOL_NAME=Maktab nomi
+MONTHLY_SUBSCRIPTION_AMOUNT=30000
+PAYMENT_INSTRUCTIONS=To'lov uchun maktab kassasi yoki karta raqamiga to'lang. Chekni admin tasdiqlaydi.
 ```
 
 ### 4. Ishga tushirish
@@ -58,7 +62,8 @@ python main.py
 ```
 
 Server `http://localhost:8000` da ishlaydi.  
-API hujjatlari: `http://localhost:8000/docs`
+API hujjatlari: `http://localhost:8000/docs`  
+Admin panel: `http://localhost:8000/admin`
 
 ## Foydalanish
 
@@ -81,7 +86,10 @@ Bu kodni ota-onaga bering — ular botda `/royxat XK7M2P9A` deb yozadi.
 
 1. Botga `/start` yuborish
 2. `/royxat ABC12345` — maktabdan olingan kod bilan bog'lash
-3. `/farzandlar` — bog'langan farzandlarni ko'rish
+3. `/tolov` — oylik obuna holati va to'lov yo'riqnomasini ko'rish
+4. `/farzandlar` — bog'langan farzandlarni ko'rish
+
+> Eslatma: ota-ona ro'yxatdan o'tgandan keyin ham xabar olish uchun obunasi faol bo'lishi kerak.
 
 ### Tirniket integratsiyasi
 
@@ -119,6 +127,19 @@ X-Api-Key: turnstile_maxfiy_kalit
 
 ### Admin API
 
+Brauzerda `http://localhost:8000/admin` sahifasini oching, `ADMIN_API_KEY` ni kiriting va:
+
+- ota-onalar ro'yxatini ko'ring
+- qaysi ota-onaning obunasi faol yoki muddati tugaganini tekshiring
+- to'lov kiritib obunani 1 yoki bir nechta oyga uzaytiring
+
+To'lov kiritilganda obuna muddati:
+
+- agar obuna hali faol bo'lsa — mavjud muddat ustiga qo'shiladi
+- agar muddati tugagan bo'lsa — bugundan boshlab hisoblanadi
+
+#### API orqali boshqarish
+
 O'quvchi qo'shish:
 
 ```bash
@@ -126,6 +147,22 @@ curl -X POST http://localhost:8000/api/admin/students \
   -H "Content-Type: application/json" \
   -H "X-Admin-Key: admin_maxfiy_kalit" \
   -d '{"full_name": "Ali Valiyev", "class_name": "5-A", "card_id": "CARD001"}'
+```
+
+Ota-onalar va obuna holatini ko'rish:
+
+```bash
+curl http://localhost:8000/api/admin/parents \
+  -H "X-Admin-Key: admin_maxfiy_kalit"
+```
+
+To'lov kiritish va obunani faollashtirish:
+
+```bash
+curl -X POST http://localhost:8000/api/admin/payments \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Key: admin_maxfiy_kalit" \
+  -d '{"telegram_id": 123456789, "months": 1, "amount_som": 30000, "note": "Iyul oyi"}'
 ```
 
 ## Tirniket tizimlari bilan bog'lash
@@ -144,7 +181,9 @@ Ko'pchilik zamonaviy tirniket tizimlari (Hikvision, ZKTeco, Dahua va boshqalar) 
 │   ├── api/routes.py        # REST API (tirniket + admin)
 │   ├── bot/telegram_bot.py # Telegram bot
 │   ├── models.py            # Ma'lumotlar bazasi modellari
-│   └── services/attendance.py
+│   └── services/
+│       ├── attendance.py
+│       └── subscriptions.py
 ├── scripts/manage_students.py
 ├── requirements.txt
 └── .env.example
@@ -159,7 +198,7 @@ Ko'pchilik zamonaviy tirniket tizimlari (Hikvision, ZKTeco, Dahua va boshqalar) 
 
 ## Keyingi qadamlar (ixtiyoriy)
 
-- Veb-admin panel
+- Click/Payme avtomatik to'lov webhooklari
 - Maktabdan chiqish vaqtini ham hisobot qilish
 - Bir nechta maktab filiali qo'llab-quvvatlash
 - PostgreSQL ga o'tish (katta maktablar uchun)

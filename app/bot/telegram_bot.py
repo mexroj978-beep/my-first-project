@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import SessionLocal
 from app.services.attendance import get_or_create_parent, get_student_by_code, link_parent_to_student
+from app.services.subscriptions import format_subscription_status, is_subscription_active
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ async def cmd_start(message: Message) -> None:
         f"Misol: <code>/royxat ABC12345</code>\n\n"
         f"📋 Boshqa buyruqlar:\n"
         f"/farzandlar — bog'langan farzandlar\n"
+        f"/tolov — obuna va to'lov ma'lumotlari\n"
         f"/yordam — yordam"
     )
     await message.answer(text, parse_mode="HTML")
@@ -82,12 +84,16 @@ async def cmd_register(message: Message) -> None:
         linked = link_parent_to_student(db, parent, student)
 
         if linked:
+            subscription_note = (
+                "✅ Obunangiz faol, xabarlar yuboriladi."
+                if is_subscription_active(db, parent.id)
+                else "💳 Xabar olish uchun /tolov buyrug'i orqali obunani faollashtiring."
+            )
             await message.answer(
                 f"✅ <b>Muvaffaqiyatli bog'landi!</b>\n\n"
                 f"👤 Farzand: <b>{student.full_name}</b>\n"
                 f"🏫 Sinf: <b>{student.class_name}</b>\n\n"
-                f"Endi farzandingiz maktabga kirgani yoki chiqqani "
-                f"haqida xabar olasiz.",
+                f"{subscription_note}",
                 parse_mode="HTML",
             )
         else:
@@ -119,7 +125,38 @@ async def cmd_children(message: Message) -> None:
         lines = ["👨‍👩‍👧 <b>Sizning farzandlaringiz:</b>\n"]
         for i, student in enumerate(students, 1):
             lines.append(f"{i}. <b>{student.full_name}</b> — {student.class_name}-sinf")
+        lines.append(f"\n💳 {format_subscription_status(db, parent.id)}")
         await message.answer("\n".join(lines), parse_mode="HTML")
+    finally:
+        db.close()
+
+
+@dp.message(Command("tolov"))
+async def cmd_payment(message: Message) -> None:
+    db = get_db_session()
+    try:
+        parent = get_or_create_parent(
+            db,
+            telegram_id=message.from_user.id,
+            full_name=message.from_user.full_name,
+        )
+        status = format_subscription_status(db, parent.id)
+        students = [link.student for link in parent.student_links]
+        children_text = (
+            "\n".join(f"• {student.full_name} ({student.class_name})" for student in students)
+            if students
+            else "Hali farzand bog'lanmagan. Avval /royxat KOD buyrug'idan foydalaning."
+        )
+
+        await message.answer(
+            "💳 <b>Obuna va to'lov</b>\n\n"
+            f"{status}\n\n"
+            f"👨‍👩‍👧 <b>Bog'langan farzandlar:</b>\n{children_text}\n\n"
+            f"💰 Oylik to'lov: <b>{settings.monthly_subscription_amount:,} so'm</b>\n\n"
+            f"📌 <b>To'lov yo'riqnomasi:</b>\n{settings.payment_instructions}\n\n"
+            "To'lov tasdiqlangach, admin obunangizni faollashtiradi.",
+            parse_mode="HTML",
+        )
     finally:
         db.close()
 
@@ -130,6 +167,7 @@ async def cmd_help(message: Message) -> None:
         "📖 <b>Yordam</b>\n\n"
         "<b>/royxat KOD</b> — farzandni bog'lash\n"
         "<b>/farzandlar</b> — bog'langan farzandlar ro'yxati\n"
+        "<b>/tolov</b> — obuna holati va to'lov yo'riqnomasi\n"
         "<b>/yordam</b> — ushbu xabar\n\n"
         "❓ Savollar bo'lsa, maktab ma'muriyatiga murojaat qiling.",
         parse_mode="HTML",

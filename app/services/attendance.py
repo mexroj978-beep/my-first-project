@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import AttendanceEvent, Parent, ParentStudent, Student
+from app.services.subscriptions import is_subscription_active
 
 
 def generate_registration_code(length: int = 8) -> str:
@@ -57,6 +58,10 @@ def get_parents_for_student(db: Session, student_id: int) -> list[Parent]:
     )
 
 
+def get_active_parents_for_student(db: Session, student_id: int) -> list[Parent]:
+    return [parent for parent in get_parents_for_student(db, student_id) if is_subscription_active(db, parent.id)]
+
+
 def format_notification(student: Student, event_type: str, event_time: datetime) -> str:
     action = "maktabga kirdi" if event_type == "enter" else "maktabdan chiqdi"
     time_str = event_time.strftime("%H:%M")
@@ -80,7 +85,7 @@ async def send_attendance_notifications(
     card_id: str,
     device_id: str | None = None,
 ) -> int:
-    parents = get_parents_for_student(db, student.id)
+    parents = get_active_parents_for_student(db, student.id)
     message = format_notification(student, event_type, event_time)
     sent_count = 0
 

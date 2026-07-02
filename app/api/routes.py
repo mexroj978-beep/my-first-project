@@ -6,9 +6,20 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models import Student
-from app.schemas import StudentCreate, StudentResponse, TurnstileEvent, TurnstileEventResponse
+from app.models import Parent, Payment, Student
+from app.schemas import (
+    LinkedStudentResponse,
+    ParentAdminResponse,
+    PaymentCreate,
+    PaymentResponse,
+    StudentCreate,
+    StudentResponse,
+    TurnstileEvent,
+    TurnstileEventResponse,
+)
 from app.services.attendance import generate_registration_code, process_turnstile_event
+from app.services.subscriptions import create_payment as create_parent_payment
+from app.services.subscriptions import get_subscription_expires_at, is_subscription_active
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -101,6 +112,85 @@ def list_students(
     _: None = Depends(verify_admin_key),
 ) -> list[Student]:
     return db.query(Student).order_by(Student.class_name, Student.full_name).all()
+
+
+def build_parent_response(db: Session, parent: Parent) -> ParentAdminResponse:
+    expires_at = get_subscription_expires_at(db, parent.id)
+    children = [
+        LinkedStudentResponse(id=link.student.id, full_name=link.student.full_name, class_name=link.student.class_name)
+        for link in parent.student_links
+    ]
+    return ParentAdminResponse(
+        id=parent.id,
+        telegram_id=parent.telegram_id,
+        full_name=parent.full_name,
+        phone=parent.phone,
+        created_at=parent.created_at,
+        subscription_active=is_subscription_active(db, parent.id),
+        subscription_expires_at=expires_at,
+        children=children,
+    )
+
+
+def build_payment_response(payment: Payment) -> PaymentResponse:
+    return PaymentResponse(
+        id=payment.id,
+        parent_id=payment.parent_id,
+        telegram_id=payment.parent.telegram_id,
+        parent_name=payment.parent.full_name,
+        amount_som=payment.amount_som,
+        months=payment.months,
+        paid_at=payment.paid_at,
+        starts_at=payment.starts_at,
+        expires_at=payment.expires_at,
+        note=payment.note,
+    )
+
+
+@router.get("/admin/parents", response_model=list[ParentAdminResponse])
+def list_parents(
+    db: Session = Depends(get_db),
+    _: None = Depends(verify_admin_key),
+) -> list[ParentAdminResponse]:
+    parents = db.query(Parent).order_by(Parent.created_at.desc()).all()
+    return [build_parent_response(db, parent) for parent in parents]
+
+
+@router.post("/admin/payments", response_model=PaymentResponse)
+def create_payment(
+    data: PaymentCreate,
+    db: Session = Depends(get_db),
+    _: None = Depends(verify_admin_key),
+) -> PaymentResponse:
+    if data.parent_id is None and data.telegram_id is None:
+        raise HTTPException(status_code=400, detail="parent_id yoki telegram_id yuboring")
+
+    query = db.query(Parent)
+    parent = (
+        query.filter(Parent.id == data.parent_id).first()
+        if data.parent_id is not None
+        else query.filter(Parent.telegram_id == data.telegram_id).first()
+    )
+    if parent is None:
+        raise HTTPException(status_code=404, detail="Ota-ona topilmadi")
+
+    payment = create_parent_payment(
+        db=db,
+        parent=parent,
+        months=data.months,
+        amount_som=data.amount_som,
+        note=data.note,
+    )
+    return build_payment_response(payment)
+
+
+@router.get("/admin/payments", response_model=list[PaymentResponse])
+def list_payments(
+    db: Session = Depends(get_db),
+    _: None = Depends(verify_admin_key),
+) -> list[PaymentResponse]:
+    payments = db.query(Payment).order_by(Payment.paid_at.desc()).all()
+    return [build_payment_response(payment) for payment in payments]
 
 
 @router.get("/health")

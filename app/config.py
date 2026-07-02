@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./school.db"
     port: int = 8000
     school_name: str = "Maktab"
+    monthly_subscription_amount: int = 30000
+    payment_instructions: str = (
+        "To'lov uchun maktab ma'muriyatiga murojaat qiling. "
+        "To'lov tasdiqlangach, obunangiz 1 oyga faollashtiriladi."
+    )
 
 
 settings = Settings()

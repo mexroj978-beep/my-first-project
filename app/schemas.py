@@ -33,3 +33,41 @@ class TurnstileEventResponse(BaseModel):
     message: str
     student_name: str | None = None
     notifications_sent: int = 0
+
+
+class LinkedStudentResponse(BaseModel):
+    id: int
+    full_name: str
+    class_name: str
+
+
+class ParentAdminResponse(BaseModel):
+    id: int
+    telegram_id: int
+    full_name: str | None = None
+    phone: str | None = None
+    created_at: datetime
+    subscription_active: bool
+    subscription_expires_at: datetime | None = None
+    children: list[LinkedStudentResponse]
+
+
+class PaymentCreate(BaseModel):
+    parent_id: int | None = Field(None, description="Ota-ona ID raqami")
+    telegram_id: int | None = Field(None, description="Ota-onaning Telegram ID raqami")
+    months: int = Field(1, ge=1, le=24, description="Necha oyga obuna uzaytiriladi")
+    amount_som: int | None = Field(None, ge=0, description="To'langan summa, so'm")
+    note: str | None = Field(None, description="To'lov izohi")
+
+
+class PaymentResponse(BaseModel):
+    id: int
+    parent_id: int
+    telegram_id: int
+    parent_name: str | None = None
+    amount_som: int
+    months: int
+    paid_at: datetime
+    starts_at: datetime
+    expires_at: datetime
+    note: str | None = None
