@@ -1,4 +1,3 @@
-import calendar
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
@@ -17,12 +16,8 @@ def ensure_aware(value: datetime) -> datetime:
     return value
 
 
-def add_months(value: datetime, months: int) -> datetime:
-    month_index = value.month - 1 + months
-    year = value.year + month_index // 12
-    month = month_index % 12 + 1
-    day = min(value.day, calendar.monthrange(year, month)[1])
-    return value.replace(year=year, month=month, day=day)
+def add_subscription_periods(value: datetime, periods: int) -> datetime:
+    return value + timedelta(days=settings.subscription_period_days * periods)
 
 
 def get_subscription_expires_at(db: Session, parent_id: int) -> datetime | None:
@@ -119,7 +114,7 @@ def create_payment(
     now = paid_at or utc_now()
     latest_expires_at = get_subscription_expires_at(db, parent.id)
     starts_at = latest_expires_at if latest_expires_at and latest_expires_at > now else now
-    expires_at = add_months(starts_at, months)
+    expires_at = add_subscription_periods(starts_at, months)
 
     payment = Payment(
         parent_id=parent.id,

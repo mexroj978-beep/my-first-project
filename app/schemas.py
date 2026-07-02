@@ -58,7 +58,7 @@ class ParentAdminResponse(BaseModel):
 class PaymentCreate(BaseModel):
     parent_id: int | None = Field(None, description="Ota-ona ID raqami")
     telegram_id: int | None = Field(None, description="Ota-onaning Telegram ID raqami")
-    months: int = Field(1, ge=1, le=24, description="Necha oyga obuna uzaytiriladi")
+    months: int = Field(1, ge=1, le=24, description="Nechta 30 kunlik obuna davri qo'shiladi")
     amount_som: int | None = Field(None, ge=0, description="To'langan summa, so'm")
     note: str | None = Field(None, description="To'lov izohi")
 

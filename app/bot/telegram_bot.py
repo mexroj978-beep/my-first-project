@@ -249,7 +249,7 @@ async def cmd_payment(message: Message) -> None:
             "💳 <b>Obuna va to'lov</b>\n\n"
             f"{status}\n\n"
             f"👨‍👩‍👧 <b>Bog'langan farzandlar:</b>\n{children_text}\n\n"
-            f"💰 Oylik to'lov: <b>{settings.monthly_subscription_amount:,} so'm</b>\n\n"
+            f"💰 30 kunlik obuna: <b>{settings.monthly_subscription_amount:,} so'm</b>\n\n"
             f"📌 <b>To'lov yo'riqnomasi:</b>\n{settings.payment_instructions}\n\n"
             "To'lov tasdiqlangach, admin obunangizni faollashtiradi.",
             parse_mode="HTML",

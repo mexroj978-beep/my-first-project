@@ -75,11 +75,11 @@ def admin_panel() -> str:
     <h2>To'lov kiritish</h2>
     <input id="telegramId" placeholder="Telegram ID" />
     <input id="parentId" placeholder="yoki Parent ID" />
-    <input id="months" type="number" min="1" value="1" />
+    <input id="months" type="number" min="1" value="1" placeholder="30 kunlik davrlar soni" />
     <input id="amount" type="number" placeholder="Summa (so'm)" />
     <input id="note" placeholder="Izoh" />
     <button onclick="createPayment()">Obunani faollashtirish</button>
-    <p class="muted">Telegram ID ni ota-onalar jadvalidan oling. Parent ID kiritilsa Telegram ID shart emas.</p>
+    <p class="muted">Telegram ID ni ota-onalar jadvalidan oling. Parent ID kiritilsa Telegram ID shart emas. 1 davr = 30 kun.</p>
   </div>
 
   <div class="card">

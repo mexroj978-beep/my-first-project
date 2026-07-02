@@ -8,7 +8,7 @@ Tirniket (turniket) tizimi bilan integratsiya qilinadigan va ota-onalarga **Tele
 - **Telegram bot** — ota-onalar farzandlarini ro'yxatdan o'tkazadi va bildirishnoma oladi
 - **Rozilik shartnomasi** — ota-ona botda shartnomani tasdiqlagandan keyin ulanadi
 - **3 kunlik bepul sinov** — rozilikdan keyin avtomatik trial boshlanadi
-- **Oylik obuna** — xabarlar faqat obunasi faol ota-onalarga yuboriladi
+- **30 kunlik obuna** — xabarlar faqat obunasi faol ota-onalarga yuboriladi
 - **Admin panel** — ota-onalar va to'lovlarni brauzer orqali boshqarish
 - **O'zbek tilida** xabarlar va buyruqlar
 - **Admin API** — o'quvchilarni tizimga qo'shish
@@ -54,6 +54,7 @@ TURNSTILE_API_KEY=turnstile_maxfiy_kalit
 ADMIN_API_KEY=admin_maxfiy_kalit
 SCHOOL_NAME=Maktab nomi
 MONTHLY_SUBSCRIPTION_AMOUNT=30000
+SUBSCRIPTION_PERIOD_DAYS=30
 FREE_TRIAL_DAYS=3
 PAYMENT_INSTRUCTIONS=To'lov uchun maktab kassasi yoki karta raqamiga to'lang. Chekni admin tasdiqlaydi.
 PARENT_CONSENT_TEXT=Men farzandimning maktabga kirish va chiqish vaqtlari tirniket tizimi orqali qayd etilishi hamda ushbu ma'lumotlar Telegram bot orqali menga xabar sifatida yuborilishiga rozilik bildiraman. Botdan foydalanish uchun dastlab 3 kun bepul sinov muddati beriladi, 4-kundan boshlab pullik obuna talab qilinishini tushunaman.
@@ -92,7 +93,7 @@ Bu kodni ota-onaga bering — ular botda `/royxat XK7M2P9A` deb yozadi.
 2. `/rozilik` — rozilik shartnomasini o'qish va tasdiqlash
 3. Rozilikdan keyin 3 kunlik bepul sinov avtomatik boshlanadi
 4. `/royxat ABC12345` — maktabdan olingan kod bilan bog'lash
-5. `/tolov` — oylik obuna holati va to'lov yo'riqnomasini ko'rish
+5. `/tolov` — 30 kunlik obuna holati va to'lov yo'riqnomasini ko'rish
 6. `/farzandlar` — bog'langan farzandlarni ko'rish
 
 > Eslatma: ota-ona 3 kunlik trial vaqtida bepul xabar oladi. 4-kundan boshlab xabar olish uchun pullik obuna faol bo'lishi kerak.
@@ -149,12 +150,13 @@ Brauzerda `http://localhost:8000/admin` sahifasini oching, `ADMIN_API_KEY` ni ki
 - rozilik bergan ota-onalarni ko'ring
 - 3 kunlik trial muddati qachon tugashini ko'ring
 - qaysi ota-onaning obunasi faol yoki muddati tugaganini tekshiring
-- to'lov kiritib obunani 1 yoki bir nechta oyga uzaytiring
+- to'lov kiritib obunani 1 yoki bir nechta 30 kunlik davrga uzaytiring
 
 To'lov kiritilganda obuna muddati:
 
 - agar obuna hali faol bo'lsa — mavjud muddat ustiga qo'shiladi
 - agar muddati tugagan bo'lsa — bugundan boshlab hisoblanadi
+- `months: 1` qiymati 30 kunni bildiradi, `months: 2` esa 60 kunni bildiradi
 
 #### API orqali boshqarish
 
@@ -180,7 +182,7 @@ To'lov kiritish va obunani faollashtirish:
 curl -X POST http://localhost:8000/api/admin/payments \
   -H "Content-Type: application/json" \
   -H "X-Admin-Key: admin_maxfiy_kalit" \
-  -d '{"telegram_id": 123456789, "months": 1, "amount_som": 30000, "note": "Iyul oyi"}'
+  -d '{"telegram_id": 123456789, "months": 1, "amount_som": 30000, "note": "30 kunlik obuna"}'
 ```
 
 ## Tirniket tizimlari bilan bog'lash
