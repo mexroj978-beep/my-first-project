@@ -1,0 +1,30 @@
+╔══════════════════════════════════════════════════════════╗
+║  DIQQAT! Bu faylni birinchi bo'lib ishga tushiring!       ║
+╚══════════════════════════════════════════════════════════╝
+
+Agar ish stolida "xabarnoma" papkasi YO'Q bo'lsa:
+
+  → ISH_STOLIGA_ORNATISH.bat  ni ikki marta bosing
+
+Bu skript avtomatik ravishda:
+  ✓ Ish stolida "xabarnoma" papkasini yaratadi
+  ✓ Barcha dastur fayllarini u yerga ko'chiradi
+  ✓ Papkani ochib beradi
+
+Keyin:
+  → xabarnoma papkasida ishga_tushirish.bat ni bosing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GitHub: https://github.com/mexroj978-beep/my-first-project
+
+1. Saytdan "Code" → "Download ZIP" bosing
+2. ZIP ni oching (Extract)
+3. ISH_STOLIGA_ORNATISH.bat ni bosing
+4. Ish stolidagi xabarnoma → ishga_tushirish.bat
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Python o'rnatilmagan bo'lsa:
+  https://www.python.org/downloads/
+  O'rnatishda "Add Python to PATH" ni belgilang!

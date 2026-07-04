@@ -4,6 +4,28 @@ Turniket (tirniket) tizimi bilan integratsiya qilinadigan va ota-onalarga farzan
 
 > **📁 Loyiha joylashuvi:** `Ish stoli / xabarnoma`
 
+## ⚠️ MUHIM — Ish stolida papka yo'q bo'lsa!
+
+Dastur bulutda yaratilgan — sizning Windows kompyuteringizda avtomatik paydo bo'lmaydi.
+Quyidagi 3 qadamni bajaring:
+
+### 1-qadam: GitHub dan yuklab oling
+👉 https://github.com/mexroj978-beep/my-first-project  
+**Code** → **Download ZIP** → ZIP ni oching (Extract)
+
+### 2-qadam: Ish stoliga o'rnating
+Ochilgan papkada **`ISH_STOLIGA_ORNATISH.bat`** ni ikki marta bosing.  
+Bu skript avtomatik **`Ish stoli / xabarnoma`** papkasini yaratadi.
+
+### 3-qadam: Dasturni ishga tushiring
+Ish stolidagi **`xabarnoma`** papkasini oching → **`ishga_tushirish.bat`** ni bosing.
+
+```
+Ish stoli/
+└── xabarnoma/
+    └── ishga_tushirish.bat   ← shuni bosing
+```
+
 ## Imkoniyatlar
 
 - Turniket webhook orqali kirish/chiqish voqealarini qabul qilish
