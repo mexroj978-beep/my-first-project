@@ -2,6 +2,8 @@
 
 Turniket (tirniket) tizimi bilan integratsiya qilinadigan va ota-onalarga farzandlari maktabga **kirgani** yoki **chiqgani** haqida Telegram orqali xabar yuboradigan dastur.
 
+> **📁 Loyiha joylashuvi:** `Ish stoli / xabarnoma`
+
 ## Imkoniyatlar
 
 - Turniket webhook orqali kirish/chiqish voqealarini qabul qilish
@@ -19,6 +21,11 @@ Turniket (tirniket) tizimi bilan integratsiya qilinadigan va ota-onalarga farzan
 - **SQLite** — standart DB (PostgreSQL ga o'tkazish mumkin)
 
 ## O'rnatish
+
+Loyiha papkasi: **`Desktop/xabarnoma`** (ish stolidagi `xabarnoma` papkasi)
+
+**Windows:** `ishga_tushirish.bat` ni ikki marta bosing  
+**Linux/Mac:** `./ishga_tushirish.sh`
 
 ```bash
 # 1. Virtual muhit
