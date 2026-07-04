@@ -1,12 +1,16 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.api.admin import router as admin_router
 from app.api.webhooks import router as webhook_router
 from app.config import settings
 from app.database import init_db
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -39,9 +43,15 @@ async def root():
     return {
         "app": settings.app_name,
         "status": "running",
+        "admin": "/admin",
         "docs": "/docs",
         "webhook": "/webhooks/turnstile",
     }
+
+
+@app.get("/admin")
+async def admin_panel():
+    return FileResponse(STATIC_DIR / "admin.html")
 
 
 @app.get("/health")

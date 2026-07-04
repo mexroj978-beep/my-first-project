@@ -41,22 +41,25 @@ cp .env.example .env
 
 ## Ishga tushirish
 
-**Terminal 1 — API server:**
+**Eng oson usul (API + Bot birga):**
+```bash
+python start.py
+```
+
+Keyin brauzerda oching: **http://localhost:8000/admin**
+
+**Alohida ishga tushirish:**
+```bash
+python start.py --api    # Faqat API server
+python start.py --bot    # Faqat Telegram bot
+python start.py --seed   # Namuna ma'lumotlar
+```
+
+**Yoki qo'lda:**
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-**Terminal 2 — Telegram bot:**
-```bash
 python run_bot.py
 ```
-
-**Namuna ma'lumotlar (ixtiyoriy):**
-```bash
-python scripts/seed_data.py
-```
-
-API hujjatlari: http://localhost:8000/docs
 
 ## Ishlash tartibi
 

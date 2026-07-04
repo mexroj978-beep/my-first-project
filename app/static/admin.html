@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maktab Turniket — Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    header h1 { font-size: 1.5rem; }
+    header p { opacity: .85; margin-top: .25rem; font-size: .9rem; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.25rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .stat-card .num { font-size: 2rem; font-weight: 700; color: #2563eb; }
+    .stat-card .label { color: #64748b; font-size: .85rem; margin-top: .25rem; }
+    .tabs {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .tab {
+      padding: .6rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: .9rem;
+      color: #475569;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      transition: all .2s;
+    }
+    .tab.active { background: #2563eb; color: white; }
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      display: none;
+    }
+    .panel.active { display: block; }
+    .panel h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #1e293b; }
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: .75rem;
+      margin-bottom: 1.5rem;
+      align-items: end;
+    }
+    label { display: block; font-size: .8rem; color: #64748b; margin-bottom: .25rem; }
+    input, select {
+      width: 100%;
+      padding: .55rem .75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: .9rem;
+    }
+    input:focus, select:focus { outline: none; border-color: #2563eb; }
+    button[type=submit], .btn {
+      padding: .6rem 1.2rem;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .9rem;
+    }
+    button[type=submit]:hover, .btn:hover { background: #1d4ed8; }
+    .btn-test { background: #059669; }
+    .btn-test:hover { background: #047857; }
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    th { text-align: left; padding: .6rem .75rem; background: #f8fafc; color: #64748b; font-weight: 600; }
+    td { padding: .6rem .75rem; border-top: 1px solid #f1f5f9; }
+    tr:hover td { background: #f8fafc; }
+    .badge {
+      display: inline-block;
+      padding: .15rem .55rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-in { background: #dcfce7; color: #166534; }
+    .badge-out { background: #fee2e2; color: #991b1b; }
+    .badge-ok { background: #dcfce7; color: #166534; }
+    .badge-warn { background: #fef9c3; color: #854d0e; }
+    .alert {
+      padding: .75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: .875rem;
+    }
+    .alert-success { background: #dcfce7; color: #166534; }
+    .alert-error { background: #fee2e2; color: #991b1b; }
+    .key-bar {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .key-bar label { margin: 0; }
+    .key-bar input { max-width: 260px; }
+    .info-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: .85rem;
+      color: #1e40af;
+      margin-top: 1rem;
+    }
+    .info-box code { background: #dbeafe; padding: .1rem .4rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏫 Maktab Turniket Tizimi</h1>
+    <p>Turniket integratsiyasi va ota-onalarga Telegram xabar</p>
+  </header>
+
+  <div class="container">
+    <div class="key-bar">
+      <div>
+        <label>Admin kalit (X-Admin-Key)</label>
+        <input type="password" id="adminKey" value="admin-secret-key" placeholder="Admin kalit">
+      </div>
+      <button class="btn" onclick="loadAll()">🔄 Yangilash</button>
+    </div>
+
+    <div id="alertBox"></div>
+
+    <div class="stats">
+      <div class="stat-card"><div class="num" id="statSchools">-</div><div class="label">Maktablar</div></div>
+      <div class="stat-card"><div class="num" id="statStudents">-</div><div class="label">O'quvchilar</div></div>
+      <div class="stat-card"><div class="num" id="statParents">-</div><div class="label">Ota-onalar</div></div>
+      <div class="stat-card"><div class="num" id="statEvents">-</div><div class="label">Bugungi voqealar</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('attendance')">📋 Davomat</button>
+      <button class="tab" onclick="showTab('students')">👨‍🎓 O'quvchilar</button>
+      <button class="tab" onclick="showTab('parents')">👨‍👩‍👧 Ota-onalar</button>
+      <button class="tab" onclick="showTab('devices')">🚪 Turniketlar</button>
+      <button class="tab" onclick="showTab('schools')">🏫 Maktablar</button>
+      <button class="tab" onclick="showTab('test')">🧪 Test</button>
+    </div>
+
+    <!-- DAVOMAT -->
+    <div id="panel-attendance" class="panel active">
+      <h2>So'nggi davomat voqealari</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Vaqt</th><th>Karta</th><th>Yo'nalish</th><th>Xabar</th></tr></thead>
+        <tbody id="attendanceTable"><tr><td colspan="5">Yuklanmoqda...</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- O'QUVCHILAR -->
+    <div id="panel-students" class="panel">
+      <h2>Yangi o'quvchi qo'shish</h2>
+      <form id="studentForm">
+        <div><label>Ism</label><input name="first_name" required placeholder="Ali"></div>
+        <div><label>Familiya</label><input name="last_name" required placeholder="Karimov"></div>
+        <div><label>Sinf</label><input name="class_name" required placeholder="5-A"></div>
+        <div><label>Karta ID</label><input name="card_id" required placeholder="CARD001"></div>
+        <div><label>Maktab</label><select name="school_id" id="studentSchoolSelect" required></select></div>
+        <div><button type="submit">Qo'shish</button></div>
+      </form>
+      <table>
+        <thead><tr><th>ID</th><th>Ism</th><th>Sinf</th><th>Karta ID</th><th>Holat</th></tr></thead>
+        <tbody id="studentsTable"></tbody>
+      </table>
+    </div>
+
+    <!-- OTA-ONALAR -->
+    <div id="panel-parents" class="panel">
+      <h2>Yangi ota-ona qo'shish</h2>
+      <form id="parentForm">
+        <div><label>To'liq ism</label><input name="full_name" required placeholder="Karim Karimov"></div>
+        <div><label>Telefon</label><input name="phone" placeholder="+998901234567"></div>
+        <div><label>O'quvchi ID (vergul bilan)</label><input name="student_ids" placeholder="1,2"></div>
+        <div><button type="submit">Qo'shish</button></div>
+      </form>
+      <table>
+        <thead><tr><th>ID</th><th>Ism</th><th>Telefon</th><th>Telegram</th><th>Bot buyrug'i</th></tr></thead>
+        <tbody id="parentsTable"></tbody>
+      </table>
+      <div class="info-box">
+        Ota-ona Telegram botda <code>/register ID</code> buyrug'ini yuborishi kerak.<br>
+        Masalan: Parent ID = 1 bo'lsa → <code>/register 1</code>
+      </div>
+    </div>
+
+    <!-- TURNIKETLAR -->
+    <div id="panel-devices" class="panel">
+      <h2>Turniket qo'shish</h2>
+      <form id="deviceForm">
+        <div><label>Qurilma kodi</label><input name="device_code" required placeholder="GATE_IN_01"></div>
+        <div><label>Nomi</label><input name="name" required placeholder="Asosiy kirish"></div>
+        <div><label>Joylashuv</label><input name="location" placeholder="1-qavat"></div>
+        <div><label>Yo'nalish</label>
+          <select name="direction"><option value="in">Kirish (in)</option><option value="out">Chiqish (out)</option></select>
+        </div>
+        <div><label>Maktab</label><select name="school_id" id="deviceSchoolSelect" required></select></div>
+        <div><button type="submit">Qo'shish</button></div>
+      </form>
+      <table>
+        <thead><tr><th>ID</th><th>Kod</th><th>Nomi</th><th>Joy</th><th>Yo'nalish</th></tr></thead>
+        <tbody id="devicesTable"></tbody>
+      </table>
+    </div>
+
+    <!-- MAKTABLAR -->
+    <div id="panel-schools" class="panel">
+      <h2>Maktab qo'shish</h2>
+      <form id="schoolForm">
+        <div><label>Nomi</label><input name="name" required placeholder="15-sonli maktab"></div>
+        <div><label>Manzil</label><input name="address" placeholder="Toshkent sh."></div>
+        <div><button type="submit">Qo'shish</button></div>
+      </form>
+      <table>
+        <thead><tr><th>ID</th><th>Nomi</th><th>Manzil</th></tr></thead>
+        <tbody id="schoolsTable"></tbody>
+      </table>
+    </div>
+
+    <!-- TEST -->
+    <div id="panel-test" class="panel">
+      <h2>Turniket voqeasini simulyatsiya qilish</h2>
+      <form id="testForm">
+        <div><label>Karta ID</label><input name="card_id" required placeholder="CARD001" value="CARD001"></div>
+        <div><label>Qurilma kodi</label><input name="device_code" required placeholder="GATE_IN_01" value="GATE_IN_01"></div>
+        <div><label>Yo'nalish</label>
+          <select name="direction"><option value="in">Kirish (in)</option><option value="out">Chiqish (out)</option></select>
+        </div>
+        <div><label>Webhook kalit</label><input name="webhook_secret" value="change-me-in-production"></div>
+        <div><button type="submit" class="btn-test">▶ Turniket simulyatsiya</button></div>
+      </form>
+      <div id="testResult"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+
+    function getKey() {
+      return document.getElementById('adminKey').value;
+    }
+
+    function showAlert(msg, type = 'success') {
+      const box = document.getElementById('alertBox');
+      box.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+      setTimeout(() => box.innerHTML = '', 4000);
+    }
+
+    async function api(method, path, body) {
+      const opts = {
+        method,
+        headers: { 'X-Admin-Key': getKey(), 'Content-Type': 'application/json' }
+      };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(API + path, opts);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Xato: ${res.status}`);
+      }
+      return res.json();
+    }
+
+    function showTab(name) {
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        const tabs = ['attendance','students','parents','devices','schools','test'];
+        t.classList.toggle('active', tabs[i] === name);
+      });
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + name).classList.add('active');
+    }
+
+    function fmtTime(iso) {
+      return new Date(iso).toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
+    }
+
+    async function loadAll() {
+      try {
+        const [schools, students, parents, devices, attendance] = await Promise.all([
+          api('GET', '/api/schools'),
+          api('GET', '/api/students'),
+          api('GET', '/api/parents'),
+          api('GET', '/api/devices'),
+          api('GET', '/api/attendance'),
+        ]);
+
+        document.getElementById('statSchools').textContent = schools.length;
+        document.getElementById('statStudents').textContent = students.length;
+        document.getElementById('statParents').textContent = parents.length;
+
+        const today = new Date().toDateString();
+        const todayEvents = attendance.filter(e => new Date(e.event_time).toDateString() === today);
+        document.getElementById('statEvents').textContent = todayEvents.length;
+
+        document.getElementById('schoolsTable').innerHTML = schools.map(s =>
+          `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.address || '-'}</td></tr>`
+        ).join('') || '<tr><td colspan="3">Maktab yo\'q</td></tr>';
+
+        const schoolOpts = schools.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        document.getElementById('studentSchoolSelect').innerHTML = schoolOpts;
+        document.getElementById('deviceSchoolSelect').innerHTML = schoolOpts;
+
+        document.getElementById('studentsTable').innerHTML = students.map(s =>
+          `<tr><td>${s.id}</td><td>${s.first_name} ${s.last_name}</td><td>${s.class_name}</td><td><code>${s.card_id}</code></td><td><span class="badge badge-ok">Faol</span></td></tr>`
+        ).join('') || '<tr><td colspan="5">O\'quvchi yo\'q</td></tr>';
+
+        document.getElementById('parentsTable').innerHTML = parents.map(p =>
+          `<tr><td>${p.id}</td><td>${p.full_name}</td><td>${p.phone || '-'}</td><td>${p.telegram_chat_id ? '<span class="badge badge-ok">Ulangan</span>' : '<span class="badge badge-warn">Kutilmoqda</span>'}</td><td><code>/register ${p.id}</code></td></tr>`
+        ).join('') || '<tr><td colspan="5">Ota-ona yo\'q</td></tr>';
+
+        document.getElementById('devicesTable').innerHTML = devices.map(d =>
+          `<tr><td>${d.id}</td><td><code>${d.device_code}</code></td><td>${d.name}</td><td>${d.location}</td><td><span class="badge badge-${d.direction === 'in' ? 'in' : 'out'}">${d.direction === 'in' ? 'Kirish' : 'Chiqish'}</span></td></tr>`
+        ).join('') || '<tr><td colspan="5">Turniket yo\'q</td></tr>';
+
+        document.getElementById('attendanceTable').innerHTML = attendance.map(e =>
+          `<tr><td>${e.id}</td><td>${fmtTime(e.event_time)}</td><td><code>${e.card_id}</code></td><td><span class="badge badge-${e.direction === 'in' ? 'in' : 'out'}">${e.direction === 'in' ? 'Kirish' : 'Chiqish'}</span></td><td>${e.notified ? '✅ Yuborildi' : '⏳ Kutilmoqda'}</td></tr>`
+        ).join('') || '<tr><td colspan="5">Voqea yo\'q</td></tr>';
+      } catch (e) {
+        showAlert(e.message, 'error');
+      }
+    }
+
+    document.getElementById('schoolForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        await api('POST', '/api/schools', { name: fd.get('name'), address: fd.get('address') || null });
+        showAlert('Maktab qo\'shildi!');
+        e.target.reset();
+        loadAll();
+      } catch (err) { showAlert(err.message, 'error'); }
+    };
+
+    document.getElementById('studentForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        await api('POST', '/api/students', {
+          school_id: +fd.get('school_id'),
+          first_name: fd.get('first_name'),
+          last_name: fd.get('last_name'),
+          class_name: fd.get('class_name'),
+          card_id: fd.get('card_id'),
+        });
+        showAlert('O\'quvchi qo\'shildi!');
+        e.target.reset();
+        loadAll();
+      } catch (err) { showAlert(err.message, 'error'); }
+    };
+
+    document.getElementById('parentForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const ids = (fd.get('student_ids') || '').split(',').map(s => +s.trim()).filter(Boolean);
+      try {
+        await api('POST', '/api/parents', { full_name: fd.get('full_name'), phone: fd.get('phone') || null, student_ids: ids });
+        showAlert('Ota-ona qo\'shildi!');
+        e.target.reset();
+        loadAll();
+      } catch (err) { showAlert(err.message, 'error'); }
+    };
+
+    document.getElementById('deviceForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        await api('POST', '/api/devices', {
+          school_id: +fd.get('school_id'),
+          device_code: fd.get('device_code'),
+          name: fd.get('name'),
+          location: fd.get('location') || 'Asosiy kirish',
+          direction: fd.get('direction'),
+        });
+        showAlert('Turniket qo\'shildi!');
+        e.target.reset();
+        loadAll();
+      } catch (err) { showAlert(err.message, 'error'); }
+    };
+
+    document.getElementById('testForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const result = document.getElementById('testResult');
+      try {
+        const res = await fetch('/webhooks/turnstile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Secret': fd.get('webhook_secret'),
+          },
+          body: JSON.stringify({
+            card_id: fd.get('card_id'),
+            device_code: fd.get('device_code'),
+            direction: fd.get('direction'),
+          }),
+        });
+        const data = await res.json();
+        result.innerHTML = `<div class="alert ${data.success ? 'alert-success' : 'alert-error'}">
+          ${data.success ? '✅' : '❌'} ${data.message}<br>
+          ${data.student_name ? `O'quvchi: <b>${data.student_name}</b><br>` : ''}
+          Xabarlar yuborildi: ${data.notifications_sent}
+        </div>`;
+        loadAll();
+      } catch (err) {
+        result.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    };
+
+    loadAll();
+  </script>
+</body>
+</html>
