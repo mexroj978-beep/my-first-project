@@ -1,0 +1,42 @@
+╔══════════════════════════════════════════════════════════╗
+║  XATO: Kutubxonalar o'rnatilmadi (Python 3.15 muammosi)  ║
+╚══════════════════════════════════════════════════════════╝
+
+Sizda Python 3.15 o'rnatilgan - bu versiya juda yangi va
+dastur kutubxonalari hali mos kelmaydi.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  YECHIM (5 daqiqa)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1-QADAM: Python 3.12 ni yuklab oling va o'rnating
+   👉 https://www.python.org/downloads/release/python-3120/
+   
+   "Windows installer (64-bit)" ni bosing
+   
+   O'rnatishda MUHIM:
+   ☑ Add python.exe to PATH  ← belgilang!
+   ☑ Install for all users   ← tavsiya
+
+2-QADAM: Eski venv papkasini o'chiring
+   
+   Desktop → xabarnoma → "venv" papkasini o'chiring
+   (o'ng tugma → Delete / O'chirish)
+
+3-QADAM: ishga_tushirish.bat ni qayta bosing
+   
+   Endi Python 3.12 ishlatiladi va hammasi o'rnatiladi.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TEKSHIRISH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CMD (Buyruq qatori) oching va yozing:
+
+   py -3.12 --version
+
+Javob: Python 3.12.x bo'lishi kerak
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Savol bo'lsa: QOLLANMA.txt faylini o'qing

@@ -42,6 +42,17 @@ Ish stoli/
 - **python-telegram-bot** — Telegram bot
 - **SQLite** — standart DB (PostgreSQL ga o'tkazish mumkin)
 
+## ⚠️ Xato: kutubxonalar o'rnatilmayapti?
+
+Agar `pydantic-core` yoki `Rust` xatosi chiqsa — sizda **Python 3.15** bo'lishi mumkin.
+
+**Yechim:**
+1. **Python 3.12** o'rnating: https://www.python.org/downloads/release/python-3120/
+2. `venv` papkasini o'chiring
+3. `ishga_tushirish.bat` ni qayta bosing
+
+Batafsil: `PYTHON_XATO_YECHIMI.txt`
+
 ## O'rnatish
 
 Loyiha papkasi: **`Desktop/xabarnoma`** (ish stolidagi `xabarnoma` papkasi)
