@@ -96,19 +96,15 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist ".env" (
-    copy .env.example .env
-    echo.
-    echo DIQQAT: .env faylini oching va TELEGRAM_BOT_TOKEN ni kiriting!
-    echo.
-    pause
-)
+if not exist ".env" copy .env.example .env >nul
 
 echo.
 echo ========================================
 echo   TAYYOR! Dastur ishga tushmoqda
 echo   Admin: http://localhost:8000/admin
 echo ========================================
+echo Birinchi ishga tushirishda dastur sizdan
+echo Telegram bot tokenini so'raydi.
 echo.
 python start.py
 pause

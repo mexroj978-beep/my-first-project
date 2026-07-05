@@ -17,9 +17,11 @@ Linux / Mac:
 
 Yoki qo'lda:
   1. pip install -r requirements.txt
-  2. .env.example ni .env ga nusxalang
-  3. TELEGRAM_BOT_TOKEN ni to'ldiring
-  4. python start.py
+  2. python start.py
+     (dastur o'zi bot tokenini so'raydi va saqlaydi)
+
+Bot token @BotFather dan olinadi:
+  /mybots → botingiz → API Token
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   MANZILLAR

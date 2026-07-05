@@ -16,13 +16,11 @@ pip install -r requirements.txt -q
 
 if [ ! -f ".env" ]; then
     cp .env.example .env
-    echo ""
-    echo "DIQQAT: .env faylini oching va TELEGRAM_BOT_TOKEN ni kiriting!"
-    echo ""
 fi
 
 echo ""
 echo "Dastur ishga tushmoqda..."
 echo "Admin panel: http://localhost:8000/admin"
+echo "(Birinchi ishga tushirishda dastur bot tokenini so'raydi)"
 echo ""
 python start.py

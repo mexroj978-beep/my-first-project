@@ -152,7 +152,10 @@ async def mystudents_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 def build_bot_application() -> Application:
     if not settings.telegram_bot_token:
-        raise ValueError("TELEGRAM_BOT_TOKEN sozlanmagan")
+        raise ValueError(
+            "TELEGRAM_BOT_TOKEN sozlanmagan. "
+            "'python start.py' ni ishga tushiring — u tokenni so'rab, .env ga saqlaydi."
+        )
 
     app = Application.builder().token(settings.telegram_bot_token).build()
     app.add_handler(CommandHandler("start", start_command))
@@ -163,6 +166,16 @@ def build_bot_application() -> Application:
 
 
 def run_bot() -> None:
+    from telegram.error import InvalidToken
+
     logger.info("Telegram bot ishga tushmoqda...")
     app = build_bot_application()
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    try:
+        app.run_polling(allowed_updates=Update.ALL_TYPES)
+    except InvalidToken:
+        logger.error(
+            "❌ TELEGRAM_BOT_TOKEN noto'g'ri — Telegram uni qabul qilmadi.\n"
+            "   @BotFather da /mybots → botingiz → API Token orqali tokenni oling,\n"
+            "   keyin .env faylidagi TELEGRAM_BOT_TOKEN qiymatini yangilang."
+        )
+        raise SystemExit(1)

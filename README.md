@@ -68,16 +68,18 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 # 2. Kutubxonalarni o'rnatish
 pip install -r requirements.txt
 
-# 3. Sozlamalar
-cp .env.example .env
-# .env faylida TELEGRAM_BOT_TOKEN ni to'ldiring
+# 3. Ishga tushirish — dastur o'zi bot tokenini so'raydi
+python start.py
 ```
 
 ### Telegram bot yaratish
 
 1. Telegramda [@BotFather](https://t.me/BotFather) ga yozing
-2. `/newbot` buyrug'ini yuboring
-3. Olingan tokenni `.env` faylga qo'ying: `TELEGRAM_BOT_TOKEN=...`
+2. `/newbot` buyrug'ini yuboring (yoki mavjud bot uchun: `/mybots` → bot → **API Token**)
+3. `python start.py` ni ishga tushiring — dastur tokenni so'raydi, tekshiradi va `.env` ga o'zi saqlaydi
+
+> Tokenni keyin almashtirish kerak bo'lsa, `.env` faylidagi `TELEGRAM_BOT_TOKEN=` qatorini yangilang.
+> Diqqat: token — maxfiy kalit. Uni hech kimga yubormang va GitHub ga joylamang!
 
 ## Ishga tushirish
 
