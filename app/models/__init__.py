@@ -1,18 +1,12 @@
 from app.models.attendance import AttendanceEvent
 from app.models.device import Device
 from app.models.parent import Parent, StudentParent
-from app.models.school import School
 from app.models.payment import PaymentOrder
+from app.models.school import School
 from app.models.settings import AppSettings
 from app.models.student import Student
 
 __all__ = [
-    "School",
-    "Student",
-    "Parent",
-    "StudentParent",
-    "Device",
-    "AttendanceEvent",
-    "AppSettings",
-    "PaymentOrder",
+    "School", "Student", "Parent", "StudentParent",
+    "Device", "AttendanceEvent", "AppSettings", "PaymentOrder",
 ]

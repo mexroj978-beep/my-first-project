@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maktab Turniket — Admin</title>
+  <title>Maktab Turniket — Admin v3.0</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -23,7 +23,7 @@
     .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
     .stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 1rem;
       margin-bottom: 1.5rem;
     }
@@ -52,6 +52,7 @@
       box-shadow: 0 1px 3px rgba(0,0,0,.08);
       transition: all .2s;
     }
+    .tab:hover { background: #f1f5f9; }
     .tab.active { background: #2563eb; color: white; }
     .panel {
       background: white;
@@ -70,14 +71,16 @@
       align-items: end;
     }
     label { display: block; font-size: .8rem; color: #64748b; margin-bottom: .25rem; }
-    input, select {
+    input, select, textarea {
       width: 100%;
       padding: .55rem .75rem;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
       font-size: .9rem;
+      font-family: inherit;
     }
-    input:focus, select:focus { outline: none; border-color: #2563eb; }
+    textarea { min-height: 80px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #2563eb; }
     button[type=submit], .btn {
       padding: .6rem 1.2rem;
       background: #2563eb;
@@ -90,7 +93,7 @@
     button[type=submit]:hover, .btn:hover { background: #1d4ed8; }
     .btn-test { background: #059669; }
     .btn-test:hover { background: #047857; }
-    .btn-sm { padding: .35rem .65rem; font-size: .78rem; margin-right: .25rem; }
+    .btn-sm { padding: .35rem .65rem; font-size: .78rem; margin-right: .25rem; margin-bottom: .25rem; }
     .btn-edit { background: #f59e0b; }
     .btn-edit:hover { background: #d97706; }
     .btn-del { background: #ef4444; }
@@ -99,7 +102,9 @@
     .btn-sub:hover { background: #6d28d9; }
     .badge-expired { background: #fee2e2; color: #991b1b; }
     .badge-trial { background: #dbeafe; color: #1e40af; }
+    .badge-off { background: #f1f5f9; color: #64748b; }
     .actions { white-space: nowrap; }
+    .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: .875rem; }
     th { text-align: left; padding: .6rem .75rem; background: #f8fafc; color: #64748b; font-weight: 600; }
     td { padding: .6rem .75rem; border-top: 1px solid #f1f5f9; }
@@ -131,11 +136,11 @@
       box-shadow: 0 1px 4px rgba(0,0,0,.08);
       display: flex;
       gap: 1rem;
-      align-items: center;
+      align-items: flex-end;
       flex-wrap: wrap;
     }
     .key-bar label { margin: 0; }
-    .key-bar input { max-width: 260px; }
+    .key-bar input { max-width: 280px; }
     .info-box {
       background: #eff6ff;
       border: 1px solid #bfdbfe;
@@ -146,21 +151,30 @@
       margin-top: 1rem;
     }
     .info-box code { background: #dbeafe; padding: .1rem .4rem; border-radius: 4px; }
+    .version-badge {
+      display: inline-block;
+      background: rgba(255,255,255,.2);
+      padding: .15rem .55rem;
+      border-radius: 6px;
+      font-size: .8rem;
+      font-weight: 600;
+      margin-left: .5rem;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>🏫 Maktab Turniket Tizimi</h1>
-    <p>Turniket integratsiyasi va ota-onalarga Telegram xabar · <b>v2.1</b></p>
+    <h1>🏫 Maktab Turniket Tizimi <span class="version-badge">v3.0</span></h1>
+    <p>Turniket integratsiyasi, davomat va ota-onalarga Telegram xabar boshqaruvi</p>
   </header>
 
   <div class="container">
     <div class="key-bar">
       <div>
-        <label>Admin kalit (X-Admin-Key)</label>
+        <label for="adminKey">Admin kalit (X-Admin-Key)</label>
         <input type="password" id="adminKey" value="admin-secret-key" placeholder="Admin kalit">
       </div>
-      <button class="btn" onclick="loadAll()">🔄 Yangilash</button>
+      <button class="btn" type="button" onclick="loadAll()">🔄 Yangilash</button>
     </div>
 
     <div id="alertBox"></div>
@@ -169,26 +183,29 @@
       <div class="stat-card"><div class="num" id="statSchools">-</div><div class="label">Maktablar</div></div>
       <div class="stat-card"><div class="num" id="statStudents">-</div><div class="label">O'quvchilar</div></div>
       <div class="stat-card"><div class="num" id="statParents">-</div><div class="label">Ota-onalar</div></div>
+      <div class="stat-card"><div class="num" id="statDevices">-</div><div class="label">Turniketlar</div></div>
       <div class="stat-card"><div class="num" id="statEvents">-</div><div class="label">Bugungi voqealar</div></div>
     </div>
 
     <div class="tabs">
-      <button class="tab active" onclick="showTab('attendance')">📋 Davomat</button>
-      <button class="tab" onclick="showTab('students')">👨‍🎓 O'quvchilar</button>
-      <button class="tab" onclick="showTab('parents')">👨‍👩‍👧 Ota-onalar</button>
-      <button class="tab" onclick="showTab('devices')">🚪 Turniketlar</button>
-      <button class="tab" onclick="showTab('schools')">🏫 Maktablar</button>
-      <button class="tab" onclick="showTab('subscription')">💳 Obuna</button>
-      <button class="tab" onclick="showTab('test')">🧪 Test</button>
+      <button class="tab active" data-tab="attendance" onclick="showTab('attendance')">📋 Davomat</button>
+      <button class="tab" data-tab="students" onclick="showTab('students')">👨‍🎓 O'quvchilar</button>
+      <button class="tab" data-tab="parents" onclick="showTab('parents')">👨‍👩‍👧 Ota-onalar</button>
+      <button class="tab" data-tab="devices" onclick="showTab('devices')">🚪 Turniketlar</button>
+      <button class="tab" data-tab="schools" onclick="showTab('schools')">🏫 Maktablar</button>
+      <button class="tab" data-tab="subscription" onclick="showTab('subscription')">💳 Obuna</button>
+      <button class="tab" data-tab="test" onclick="showTab('test')">🧪 Test</button>
     </div>
 
     <!-- DAVOMAT -->
     <div id="panel-attendance" class="panel active">
       <h2>So'nggi davomat voqealari</h2>
-      <table>
-        <thead><tr><th>ID</th><th>Vaqt</th><th>Karta</th><th>Yo'nalish</th><th>Xabar</th></tr></thead>
-        <tbody id="attendanceTable"><tr><td colspan="5">Yuklanmoqda...</td></tr></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Vaqt</th><th>Karta</th><th>Yo'nalish</th><th>Xabar</th></tr></thead>
+          <tbody id="attendanceTable"><tr><td colspan="5">Yuklanmoqda...</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- O'QUVCHILAR -->
@@ -202,10 +219,12 @@
         <div><label>Maktab</label><select name="school_id" id="studentSchoolSelect" required></select></div>
         <div><button type="submit">Qo'shish</button></div>
       </form>
-      <table>
-        <thead><tr><th>ID</th><th>Ism</th><th>Sinf</th><th>Karta ID</th><th>Holat</th><th>Amallar</th></tr></thead>
-        <tbody id="studentsTable"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Ism</th><th>Sinf</th><th>Karta ID</th><th>Holat</th><th>Amallar</th></tr></thead>
+          <tbody id="studentsTable"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- OTA-ONALAR -->
@@ -217,14 +236,16 @@
         <div><label>O'quvchi ID (vergul bilan)</label><input name="student_ids" placeholder="1,2"></div>
         <div><button type="submit">Qo'shish</button></div>
       </form>
-      <table>
-        <thead><tr><th>ID</th><th>Ism</th><th>Telefon</th><th>Telegram</th><th>Obuna</th><th>Bot buyrug'i</th><th>Amallar</th></tr></thead>
-        <tbody id="parentsTable"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Ism</th><th>Telefon</th><th>Telegram</th><th>Obuna</th><th>Bot buyrug'i</th><th>Amallar</th></tr></thead>
+          <tbody id="parentsTable"></tbody>
+        </table>
+      </div>
       <div class="info-box">
         Ota-ona Telegram botda <code>/register ID</code> buyrug'ini yuborishi kerak.<br>
-        🎁 Birinchi <b>3 kun bepul</b>, keyin obuna kerak.<br>
-        To'lovdan keyin <b>Obuna+</b> tugmasini bosing.
+        Bepul sinov muddati tugagach obuna kerak bo'ladi.<br>
+        To'lovdan keyin <b>Obuna+</b> tugmasini bosing yoki ota-ona botda <code>/pay</code> ishlatsin.
       </div>
     </div>
 
@@ -236,15 +257,20 @@
         <div><label>Nomi</label><input name="name" required placeholder="Asosiy kirish"></div>
         <div><label>Joylashuv</label><input name="location" placeholder="1-qavat"></div>
         <div><label>Yo'nalish</label>
-          <select name="direction"><option value="in">Kirish (in)</option><option value="out">Chiqish (out)</option></select>
+          <select name="direction">
+            <option value="in">Kirish (in)</option>
+            <option value="out">Chiqish (out)</option>
+          </select>
         </div>
         <div><label>Maktab</label><select name="school_id" id="deviceSchoolSelect" required></select></div>
         <div><button type="submit">Qo'shish</button></div>
       </form>
-      <table>
-        <thead><tr><th>ID</th><th>Kod</th><th>Nomi</th><th>Joy</th><th>Yo'nalish</th></tr></thead>
-        <tbody id="devicesTable"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Kod</th><th>Nomi</th><th>Joy</th><th>Yo'nalish</th><th>Holat</th></tr></thead>
+          <tbody id="devicesTable"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- MAKTABLAR -->
@@ -255,10 +281,12 @@
         <div><label>Manzil</label><input name="address" placeholder="Toshkent sh."></div>
         <div><button type="submit">Qo'shish</button></div>
       </form>
-      <table>
-        <thead><tr><th>ID</th><th>Nomi</th><th>Manzil</th></tr></thead>
-        <tbody id="schoolsTable"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Nomi</th><th>Manzil</th></tr></thead>
+          <tbody id="schoolsTable"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- OBUNA -->
@@ -269,8 +297,10 @@
         <div><label>Obuna narxi</label><input name="subscription_price" type="number" min="0" value="30000"></div>
         <div><label>Obuna davri (kun)</label><input name="subscription_period_days" type="number" min="1" value="30"></div>
         <div><label>Valyuta</label><input name="currency" value="UZS"></div>
-        <div style="grid-column: 1/-1"><label>To'lov ma'lumoti (ota-onalarga ko'rinadi)</label>
-          <input name="payment_info" placeholder="Karta raqami yoki to'lov yo'riqnomasi"></div>
+        <div style="grid-column: 1/-1">
+          <label>To'lov ma'lumoti (ota-onalarga ko'rinadi)</label>
+          <textarea name="payment_info" placeholder="Karta raqami yoki to'lov yo'riqnomasi"></textarea>
+        </div>
         <div><button type="submit">💾 Saqlash</button></div>
       </form>
       <div class="info-box">
@@ -286,12 +316,19 @@
         <div><label>Karta ID</label><input name="card_id" required placeholder="CARD001" value="CARD001"></div>
         <div><label>Qurilma kodi</label><input name="device_code" required placeholder="GATE_IN_01" value="GATE_IN_01"></div>
         <div><label>Yo'nalish</label>
-          <select name="direction"><option value="in">Kirish (in)</option><option value="out">Chiqish (out)</option></select>
+          <select name="direction">
+            <option value="in">Kirish (in)</option>
+            <option value="out">Chiqish (out)</option>
+          </select>
         </div>
-        <div><label>Webhook kalit</label><input name="webhook_secret" value="change-me-in-production"></div>
+        <div><label>Webhook kalit (X-Webhook-Secret)</label><input name="webhook_secret" value="change-me-in-production"></div>
         <div><button type="submit" class="btn-test">▶ Turniket simulyatsiya</button></div>
       </form>
       <div id="testResult"></div>
+      <div class="info-box">
+        Bu test <code>POST /webhooks/turnstile</code> endpointiga so'rov yuboradi.<br>
+        Avval o'quvchi va turniket qurilmasini tizimga qo'shing.
+      </div>
     </div>
   </div>
 
@@ -302,30 +339,43 @@
       return document.getElementById('adminKey').value;
     }
 
+    function parseErrorDetail(detail) {
+      if (!detail) return 'Noma\'lum xato';
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) {
+        return detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+      }
+      return JSON.stringify(detail);
+    }
+
     function showAlert(msg, type = 'success') {
       const box = document.getElementById('alertBox');
       box.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
-      setTimeout(() => box.innerHTML = '', 4000);
+      setTimeout(() => { box.innerHTML = ''; }, 4500);
     }
 
     async function api(method, path, body) {
       const opts = {
         method,
-        headers: { 'X-Admin-Key': getKey(), 'Content-Type': 'application/json' }
+        headers: {
+          'X-Admin-Key': getKey(),
+          'Content-Type': 'application/json'
+        }
       };
-      if (body) opts.body = JSON.stringify(body);
+      if (body !== undefined) opts.body = JSON.stringify(body);
       const res = await fetch(API + path, opts);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Xato: ${res.status}`);
+        throw new Error(parseErrorDetail(err.detail) || `Xato: ${res.status}`);
       }
-      return res.json();
+      if (res.status === 204) return null;
+      const text = await res.text();
+      return text ? JSON.parse(text) : null;
     }
 
     function showTab(name) {
-      document.querySelectorAll('.tab').forEach((t, i) => {
-        const tabs = ['attendance','students','parents','devices','schools','subscription','test'];
-        t.classList.toggle('active', tabs[i] === name);
+      document.querySelectorAll('.tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === name);
       });
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.getElementById('panel-' + name).classList.add('active');
@@ -337,6 +387,18 @@
       if (status.includes('faol')) return `<span class="badge badge-ok">${status}</span>`;
       if (status.includes('tugagan')) return `<span class="badge badge-expired">${status}</span>`;
       return `<span class="badge badge-warn">${status}</span>`;
+    }
+
+    function fmtTime(iso) {
+      return new Date(iso).toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
+    }
+
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     }
 
     async function editStudent(id) {
@@ -354,7 +416,9 @@
         await api('PUT', `/api/students/${id}`, { first_name, last_name, class_name, card_id });
         showAlert('O\'quvchi yangilandi!');
         loadAll();
-      } catch (e) { showAlert(e.message, 'error'); }
+      } catch (e) {
+        showAlert(e.message, 'error');
+      }
     }
 
     async function deleteStudent(id) {
@@ -363,7 +427,9 @@
         await api('DELETE', `/api/students/${id}`);
         showAlert('O\'quvchi o\'chirildi!');
         loadAll();
-      } catch (e) { showAlert(e.message, 'error'); }
+      } catch (e) {
+        showAlert(e.message, 'error');
+      }
     }
 
     async function editParent(id) {
@@ -373,14 +439,19 @@
       if (full_name === null) return;
       const phone = prompt('Telefon:', p.phone || '');
       if (phone === null) return;
-      const student_ids_str = prompt('O\'quvchi ID lar (vergul bilan):', '');
+      const student_ids_str = prompt('O\'quvchi ID lar (vergul bilan, bo\'sh qoldirish mumkin):', '');
+      if (student_ids_str === null) return;
       const body = { full_name, phone: phone || null };
-      if (student_ids_str) body.student_ids = student_ids_str.split(',').map(s => +s.trim()).filter(Boolean);
+      if (student_ids_str.trim()) {
+        body.student_ids = student_ids_str.split(',').map(s => +s.trim()).filter(Boolean);
+      }
       try {
         await api('PUT', `/api/parents/${id}`, body);
         showAlert('Ota-ona yangilandi!');
         loadAll();
-      } catch (e) { showAlert(e.message, 'error'); }
+      } catch (e) {
+        showAlert(e.message, 'error');
+      }
     }
 
     async function deleteParent(id) {
@@ -389,21 +460,26 @@
         await api('DELETE', `/api/parents/${id}`);
         showAlert('Ota-ona o\'chirildi!');
         loadAll();
-      } catch (e) { showAlert(e.message, 'error'); }
+      } catch (e) {
+        showAlert(e.message, 'error');
+      }
     }
 
     async function activateSub(id) {
       const months = prompt('Nechi oy obuna faollashtirilsin?', '1');
-      if (!months) return;
+      if (months === null || months === '') return;
+      const n = +months;
+      if (!n || n < 1 || n > 12) {
+        showAlert('1 dan 12 gacha oy kiriting', 'error');
+        return;
+      }
       try {
-        const res = await api('POST', `/api/parents/${id}/subscribe`, { months: +months });
-        showAlert(res.message);
+        const res = await api('POST', `/api/parents/${id}/subscribe`, { months: n });
+        showAlert(`Obuna faollashtirildi: ${res.status || 'OK'}`);
         loadAll();
-      } catch (e) { showAlert(e.message, 'error'); }
-    }
-
-    function fmtTime(iso) {
-      return new Date(iso).toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
+      } catch (e) {
+        showAlert(e.message, 'error');
+      }
     }
 
     async function loadAll() {
@@ -414,41 +490,67 @@
           api('GET', '/api/parents'),
           api('GET', '/api/devices'),
           api('GET', '/api/attendance'),
-          api('GET', '/api/settings/subscription'),
+          api('GET', '/api/settings'),
         ]);
 
         document.getElementById('statSchools').textContent = schools.length;
         document.getElementById('statStudents').textContent = students.length;
         document.getElementById('statParents').textContent = parents.length;
+        document.getElementById('statDevices').textContent = devices.length;
 
         const today = new Date().toDateString();
         const todayEvents = attendance.filter(e => new Date(e.event_time).toDateString() === today);
         document.getElementById('statEvents').textContent = todayEvents.length;
 
-        document.getElementById('schoolsTable').innerHTML = schools.map(s =>
-          `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.address || '-'}</td></tr>`
-        ).join('') || '<tr><td colspan="3">Maktab yo\'q</td></tr>';
+        document.getElementById('schoolsTable').innerHTML = schools.length
+          ? schools.map(s =>
+              `<tr><td>${s.id}</td><td>${esc(s.name)}</td><td>${esc(s.address || '-')}</td></tr>`
+            ).join('')
+          : '<tr><td colspan="3">Maktab yo\'q</td></tr>';
 
-        const schoolOpts = schools.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        const schoolOpts = schools.length
+          ? schools.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')
+          : '<option value="">Avval maktab qo\'shing</option>';
         document.getElementById('studentSchoolSelect').innerHTML = schoolOpts;
         document.getElementById('deviceSchoolSelect').innerHTML = schoolOpts;
 
-        document.getElementById('studentsTable').innerHTML = students.map(s =>
-          `<tr><td>${s.id}</td><td>${s.first_name} ${s.last_name}</td><td>${s.class_name}</td><td><code>${s.card_id}</code></td><td><span class="badge badge-ok">Faol</span></td>
-          <td class="actions"><button class="btn btn-sm btn-edit" onclick="editStudent(${s.id})">✏️</button><button class="btn btn-sm btn-del" onclick="deleteStudent(${s.id})">🗑</button></td></tr>`
-        ).join('') || '<tr><td colspan="6">O\'quvchi yo\'q</td></tr>';
+        document.getElementById('studentsTable').innerHTML = students.length
+          ? students.map(s =>
+              `<tr>
+                <td>${s.id}</td>
+                <td>${esc(s.first_name)} ${esc(s.last_name)}</td>
+                <td>${esc(s.class_name)}</td>
+                <td><code>${esc(s.card_id)}</code></td>
+                <td>${s.is_active
+                  ? '<span class="badge badge-ok">Faol</span>'
+                  : '<span class="badge badge-off">Nofaol</span>'}</td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-edit" onclick="editStudent(${s.id})">✏️ Tahrir</button>
+                  <button class="btn btn-sm btn-del" onclick="deleteStudent(${s.id})">🗑 O\'chirish</button>
+                </td>
+              </tr>`
+            ).join('')
+          : '<tr><td colspan="6">O\'quvchi yo\'q</td></tr>';
 
-        document.getElementById('parentsTable').innerHTML = parents.map(p =>
-          `<tr><td>${p.id}</td><td>${p.full_name}</td><td>${p.phone || '-'}</td>
-          <td>${p.telegram_chat_id ? '<span class="badge badge-ok">Ulangan</span>' : '<span class="badge badge-warn">Kutilmoqda</span>'}</td>
-          <td>${subBadge(p.subscription_status)}</td>
-          <td><code>/register ${p.id}</code></td>
-          <td class="actions">
-            <button class="btn btn-sm btn-sub" onclick="activateSub(${p.id})">Obuna+</button>
-            <button class="btn btn-sm btn-edit" onclick="editParent(${p.id})">✏️</button>
-            <button class="btn btn-sm btn-del" onclick="deleteParent(${p.id})">🗑</button>
-          </td></tr>`
-        ).join('') || '<tr><td colspan="7">Ota-ona yo\'q</td></tr>';
+        document.getElementById('parentsTable').innerHTML = parents.length
+          ? parents.map(p =>
+              `<tr>
+                <td>${p.id}</td>
+                <td>${esc(p.full_name)}</td>
+                <td>${esc(p.phone || '-')}</td>
+                <td>${p.telegram_chat_id
+                  ? '<span class="badge badge-ok">Ulangan</span>'
+                  : '<span class="badge badge-warn">Kutilmoqda</span>'}</td>
+                <td>${subBadge(p.subscription_status)}</td>
+                <td><code>/register ${p.id}</code></td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-sub" onclick="activateSub(${p.id})">Obuna+</button>
+                  <button class="btn btn-sm btn-edit" onclick="editParent(${p.id})">✏️</button>
+                  <button class="btn btn-sm btn-del" onclick="deleteParent(${p.id})">🗑</button>
+                </td>
+              </tr>`
+            ).join('')
+          : '<tr><td colspan="7">Ota-ona yo\'q</td></tr>';
 
         const sf = document.getElementById('subscriptionForm');
         if (subSettings && sf) {
@@ -459,13 +561,32 @@
           sf.payment_info.value = subSettings.payment_info || '';
         }
 
-        document.getElementById('devicesTable').innerHTML = devices.map(d =>
-          `<tr><td>${d.id}</td><td><code>${d.device_code}</code></td><td>${d.name}</td><td>${d.location}</td><td><span class="badge badge-${d.direction === 'in' ? 'in' : 'out'}">${d.direction === 'in' ? 'Kirish' : 'Chiqish'}</span></td></tr>`
-        ).join('') || '<tr><td colspan="5">Turniket yo\'q</td></tr>';
+        document.getElementById('devicesTable').innerHTML = devices.length
+          ? devices.map(d =>
+              `<tr>
+                <td>${d.id}</td>
+                <td><code>${esc(d.device_code)}</code></td>
+                <td>${esc(d.name)}</td>
+                <td>${esc(d.location)}</td>
+                <td><span class="badge badge-${d.direction === 'in' ? 'in' : 'out'}">${d.direction === 'in' ? 'Kirish' : 'Chiqish'}</span></td>
+                <td>${d.is_active
+                  ? '<span class="badge badge-ok">Faol</span>'
+                  : '<span class="badge badge-off">Nofaol</span>'}</td>
+              </tr>`
+            ).join('')
+          : '<tr><td colspan="6">Turniket yo\'q</td></tr>';
 
-        document.getElementById('attendanceTable').innerHTML = attendance.map(e =>
-          `<tr><td>${e.id}</td><td>${fmtTime(e.event_time)}</td><td><code>${e.card_id}</code></td><td><span class="badge badge-${e.direction === 'in' ? 'in' : 'out'}">${e.direction === 'in' ? 'Kirish' : 'Chiqish'}</span></td><td>${e.notified ? '✅ Yuborildi' : '⏳ Kutilmoqda'}</td></tr>`
-        ).join('') || '<tr><td colspan="5">Voqea yo\'q</td></tr>';
+        document.getElementById('attendanceTable').innerHTML = attendance.length
+          ? attendance.map(e =>
+              `<tr>
+                <td>${e.id}</td>
+                <td>${fmtTime(e.event_time)}</td>
+                <td><code>${esc(e.card_id)}</code></td>
+                <td><span class="badge badge-${e.direction === 'in' ? 'in' : 'out'}">${e.direction === 'in' ? 'Kirish' : 'Chiqish'}</span></td>
+                <td>${e.notified ? '✅ Yuborildi' : '⏳ Kutilmoqda'}</td>
+              </tr>`
+            ).join('')
+          : '<tr><td colspan="5">Voqea yo\'q</td></tr>';
       } catch (e) {
         showAlert(e.message, 'error');
       }
@@ -475,11 +596,16 @@
       e.preventDefault();
       const fd = new FormData(e.target);
       try {
-        await api('POST', '/api/schools', { name: fd.get('name'), address: fd.get('address') || null });
+        await api('POST', '/api/schools', {
+          name: fd.get('name'),
+          address: fd.get('address') || null
+        });
         showAlert('Maktab qo\'shildi!');
         e.target.reset();
         loadAll();
-      } catch (err) { showAlert(err.message, 'error'); }
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
     };
 
     document.getElementById('studentForm').onsubmit = async (e) => {
@@ -496,7 +622,9 @@
         showAlert('O\'quvchi qo\'shildi!');
         e.target.reset();
         loadAll();
-      } catch (err) { showAlert(err.message, 'error'); }
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
     };
 
     document.getElementById('parentForm').onsubmit = async (e) => {
@@ -504,11 +632,17 @@
       const fd = new FormData(e.target);
       const ids = (fd.get('student_ids') || '').split(',').map(s => +s.trim()).filter(Boolean);
       try {
-        await api('POST', '/api/parents', { full_name: fd.get('full_name'), phone: fd.get('phone') || null, student_ids: ids });
+        await api('POST', '/api/parents', {
+          full_name: fd.get('full_name'),
+          phone: fd.get('phone') || null,
+          student_ids: ids
+        });
         showAlert('Ota-ona qo\'shildi!');
         e.target.reset();
         loadAll();
-      } catch (err) { showAlert(err.message, 'error'); }
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
     };
 
     document.getElementById('deviceForm').onsubmit = async (e) => {
@@ -525,14 +659,16 @@
         showAlert('Turniket qo\'shildi!');
         e.target.reset();
         loadAll();
-      } catch (err) { showAlert(err.message, 'error'); }
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
     };
 
     document.getElementById('subscriptionForm').onsubmit = async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
       try {
-        await api('PUT', '/api/settings/subscription', {
+        await api('PUT', '/api/settings', {
           trial_days: +fd.get('trial_days'),
           subscription_price: +fd.get('subscription_price'),
           subscription_period_days: +fd.get('subscription_period_days'),
@@ -541,7 +677,9 @@
         });
         showAlert('Obuna sozlamalari saqlandi!');
         loadAll();
-      } catch (err) { showAlert(err.message, 'error'); }
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
     };
 
     document.getElementById('testForm').onsubmit = async (e) => {
@@ -562,14 +700,18 @@
           }),
         });
         const data = await res.json();
-        result.innerHTML = `<div class="alert ${data.success ? 'alert-success' : 'alert-error'}">
-          ${data.success ? '✅' : '❌'} ${data.message}<br>
-          ${data.student_name ? `O'quvchi: <b>${data.student_name}</b><br>` : ''}
-          Xabarlar yuborildi: ${data.notifications_sent}
+        if (!res.ok) {
+          throw new Error(parseErrorDetail(data.detail) || `Xato: ${res.status}`);
+        }
+        result.innerHTML = `<div class="alert alert-${data.success ? 'success' : 'error'}">
+          ${data.success ? '✅' : '❌'} ${esc(data.message)}<br>
+          ${data.student_name ? `O'quvchi: <b>${esc(data.student_name)}</b><br>` : ''}
+          ${data.event_id ? `Voqea ID: ${data.event_id}<br>` : ''}
+          Xabarlar yuborildi: ${data.notifications_sent ?? 0}
         </div>`;
         loadAll();
       } catch (err) {
-        result.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+        result.innerHTML = `<div class="alert alert-error">${esc(err.message)}</div>`;
       }
     };
 

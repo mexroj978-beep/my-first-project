@@ -7,274 +7,130 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 from app.config import settings
-from app.database import async_session
+from app.database import SessionLocal
 from app.models.parent import Parent, StudentParent
 from app.models.student import Student
 from app.services.payment import PaymentService
 from app.services.subscription import SubscriptionService
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message:
-        return
-
+async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 <b>Assalomu alaykum!</b>\n\n"
-        "Bu bot farzandingiz maktabga kirishi va chiqishini xabar qiladi.\n\n"
-        "<b>Ro'yxatdan o'tish:</b>\n"
-        "Maktab admini sizga berilgan ID raqam bilan:\n"
-        "<code>/register 123</code>\n\n"
+        "Farzandingiz maktabga kirishi/chiqishini xabar qilaman.\n\n"
         "<b>Buyruqlar:</b>\n"
-        "/register &lt;id&gt; - Telegram hisobingizni bog'lash\n"
-        "/status - Obuna holati\n"
-        "/subscribe - Obuna narxi\n"
-        "/pay - To'lov qilish (avtomatik obuna)\n"
-        "/mystudents - Farzandlar ro'yxati\n"
-        "/help - Yordam",
+        "/register &lt;id&gt; — Ro'yxatdan o'tish\n"
+        "/pay — Obuna to'lovi\n"
+        "/status — Obuna holati\n"
+        "/mystudents — Farzandlar\n"
+        "/help — Yordam",
         parse_mode="HTML",
     )
 
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message:
-        return
-
+async def help_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "ℹ️ <b>Yordam</b>\n\n"
-        "1. Maktab admini sizni tizimga qo'shadi\n"
-        "2. Sizga parent ID beriladi (masalan: 5)\n"
-        "3. Botda yozing: <code>/register 5</code>\n"
-        "4. <b>3 kun bepul</b> sinov davri boshlanadi\n"
-        "5. Keyin obuna bo'ling: <code>/subscribe</code>\n\n"
-        "Savollar bo'lsa maktab adminiga murojaat qiling.",
+        "1. Admin sizni qo'shadi va ID beradi\n"
+        "2. <code>/register 5</code> yozing\n"
+        "3. 3 kun bepul sinov\n"
+        "4. Keyin <code>/pay</code> — to'lov, obuna avtomatik yoqiladi",
         parse_mode="HTML",
     )
 
 
-async def register_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message or not update.effective_user:
-        return
-
-    if not context.args:
-        await update.message.reply_text(
-            "❌ Parent ID kiriting.\n\nMisol: <code>/register 5</code>",
-            parse_mode="HTML",
-        )
-        return
-
+async def register(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not ctx.args:
+        return await update.message.reply_text("Misol: <code>/register 1</code>", parse_mode="HTML")
     try:
-        parent_id = int(context.args[0])
+        pid = int(ctx.args[0])
     except ValueError:
-        await update.message.reply_text("❌ Noto'g'ri ID formati.")
-        return
-
-    chat_id = update.effective_user.id
-    username = update.effective_user.username
-
-    async with async_session() as session:
-        parent = await session.get(Parent, parent_id)
-        if not parent:
-            await update.message.reply_text("❌ Bunday parent ID topilmadi. Admin bilan bog'laning.")
-            return
-
-        existing = await session.execute(
-            select(Parent).where(Parent.telegram_chat_id == chat_id, Parent.id != parent_id)
-        )
-        if existing.scalar_one_or_none():
-            await update.message.reply_text("❌ Bu Telegram hisob boshqa ota-onaga bog'langan.")
-            return
-
-        parent.telegram_chat_id = chat_id
-        parent.telegram_username = username
-        if not parent.bot_registered_at:
-            parent.bot_registered_at = datetime.now(timezone.utc)
-        await session.commit()
-
-        app_settings = await SubscriptionService.get_settings(session)
-        sub_status = SubscriptionService.get_status(parent, app_settings)
-
-        result = await session.execute(
-            select(Student)
-            .join(StudentParent, StudentParent.student_id == Student.id)
-            .where(StudentParent.parent_id == parent_id)
-            .options(selectinload(Student.school))
-        )
-        students = list(result.scalars().all())
-
-    if students:
-        lines = "\n".join(
-            f"• {s.first_name} {s.last_name} ({s.class_name}-sinf)" for s in students
-        )
-        await update.message.reply_text(
-            f"✅ <b>Muvaffaqiyatli ro'yxatdan o'tdingiz!</b>\n\n"
-            f"👤 {parent.full_name}\n\n"
-            f"<b>Farzandlar:</b>\n{lines}\n\n"
-            f"🎁 <b>{app_settings.trial_days} kun bepul</b> sinov boshlandi!\n"
-            f"📊 Holat: {sub_status['label']}\n\n"
-            f"Sinov tugagach: /subscribe",
-            parse_mode="HTML",
-        )
-    else:
-        await update.message.reply_text(
-            f"✅ Ro'yxatdan o'tdingiz: <b>{parent.full_name}</b>\n\n"
-            f"⚠️ Hali farzand bog'lanmagan. Admin bilan bog'laning.\n\n"
-            f"🎁 <b>{app_settings.trial_days} kun bepul</b> sinov boshlandi!",
-            parse_mode="HTML",
-        )
-
-
-async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message or not update.effective_user:
-        return
-
-    chat_id = update.effective_user.id
-    async with async_session() as session:
-        result = await session.execute(select(Parent).where(Parent.telegram_chat_id == chat_id))
-        parent = result.scalar_one_or_none()
-        if not parent:
-            await update.message.reply_text("❌ Avval <code>/register ID</code> qiling.", parse_mode="HTML")
-            return
-
-        app_settings = await SubscriptionService.get_settings(session)
-        sub = SubscriptionService.get_status(parent, app_settings)
-
+        return await update.message.reply_text("❌ Noto'g'ri ID")
+    chat = update.effective_user.id
+    async with SessionLocal() as db:
+        p = await db.get(Parent, pid)
+        if not p:
+            return await update.message.reply_text("❌ ID topilmadi")
+        ex = await db.execute(select(Parent).where(Parent.telegram_chat_id == chat, Parent.id != pid))
+        if ex.scalar_one_or_none():
+            return await update.message.reply_text("❌ Bu hisob boshqa ota-onaga bog'langan")
+        p.telegram_chat_id = chat
+        p.telegram_username = update.effective_user.username
+        if not p.bot_registered_at:
+            p.bot_registered_at = datetime.now(timezone.utc)
+        await db.commit()
+        cfg = await SubscriptionService.get_settings(db)
+        st = SubscriptionService.status(p, cfg)
+        r = await db.execute(select(Student).join(StudentParent).where(StudentParent.parent_id == pid))
+        kids = list(r.scalars().all())
+    kids_txt = "\n".join(f"• {s.first_name} {s.last_name} ({s.class_name})" for s in kids) or "⚠️ Farzand bog'lanmagan"
     await update.message.reply_text(
-        f"📊 <b>Obuna holati</b>\n\n"
-        f"👤 {parent.full_name}\n"
-        f"📌 Holat: <b>{sub['label']}</b>\n"
-        f"💰 Obuna narxi: <b>{app_settings.subscription_price:,} {app_settings.currency}</b> / "
-        f"{app_settings.subscription_period_days} kun\n\n"
-        f"Obuna bo'lish: /pay",
+        f"✅ <b>Ro'yxatdan o'tdingiz!</b>\n\n👤 {p.full_name}\n{kids_txt}\n\n"
+        f"🎁 {cfg.trial_days} kun bepul: {st['label']}",
         parse_mode="HTML",
     )
 
 
-async def pay_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message or not update.effective_user:
-        return
-
-    chat_id = update.effective_user.id
-    payment_service = PaymentService()
-
-    async with async_session() as session:
-        result = await session.execute(select(Parent).where(Parent.telegram_chat_id == chat_id))
-        parent = result.scalar_one_or_none()
-        if not parent:
-            await update.message.reply_text("❌ Avval <code>/register ID</code> qiling.", parse_mode="HTML")
-            return
-
-        app_settings = await SubscriptionService.get_settings(session)
-        sub = SubscriptionService.get_status(parent, app_settings)
-
-        if sub["code"] == "active":
-            await update.message.reply_text(
-                f"✅ Obunangiz allaqachon faol!\n📊 {sub['label']}",
-                parse_mode="HTML",
-            )
-            return
-
-        order = await payment_service.create_order(session, parent, app_settings)
-
-    pay_url = payment_service.get_payment_url(order)
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("💳 To'lov qilish", url=pay_url)]])
-
+async def status_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_user.id
+    async with SessionLocal() as db:
+        r = await db.execute(select(Parent).where(Parent.telegram_chat_id == chat))
+        p = r.scalar_one_or_none()
+        if not p:
+            return await update.message.reply_text("❌ Avval /register qiling")
+        cfg = await SubscriptionService.get_settings(db)
+        st = SubscriptionService.status(p, cfg)
     await update.message.reply_text(
-        f"💳 <b>Obuna to'lovi</b>\n\n"
-        f"💰 Summa: <b>{order.amount:,} {order.currency}</b>\n"
-        f"📅 Davr: {app_settings.subscription_period_days} kun\n"
-        f"📌 Holat: {sub['label']}\n\n"
-        f"To'lov qilgandan keyin obuna <b>avtomatik</b> yoqiladi.\n"
-        f"Quyidagi tugmani bosing:",
-        parse_mode="HTML",
-        reply_markup=keyboard,
-    )
-
-
-async def subscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message or not update.effective_user:
-        return
-
-    chat_id = update.effective_user.id
-    async with async_session() as session:
-        result = await session.execute(select(Parent).where(Parent.telegram_chat_id == chat_id))
-        parent = result.scalar_one_or_none()
-        app_settings = await SubscriptionService.get_settings(session)
-
-    if not parent:
-        await update.message.reply_text("❌ Avval <code>/register ID</code> qiling.", parse_mode="HTML")
-        return
-
-    sub = SubscriptionService.get_status(parent, app_settings)
-
-    await update.message.reply_text(
-        f"💳 <b>Obuna ma'lumotlari</b>\n\n"
-        f"💰 Narx: <b>{app_settings.subscription_price:,} {app_settings.currency}</b>\n"
-        f"📅 Davr: {app_settings.subscription_period_days} kun\n"
-        f"🎁 Bepul sinov: {app_settings.trial_days} kun\n\n"
-        f"📌 Sizning holat: <b>{sub['label']}</b>\n\n"
-        f"To'lov qilish: <code>/pay</code> — obuna avtomatik yoqiladi.",
+        f"📊 <b>{p.full_name}</b>\nHolat: <b>{st['label']}</b>\n"
+        f"💰 {cfg.subscription_price:,} {cfg.currency} / {cfg.subscription_period_days} kun\n\n/pay — to'lov",
         parse_mode="HTML",
     )
 
 
-async def mystudents_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message or not update.effective_user:
-        return
-
-    chat_id = update.effective_user.id
-
-    async with async_session() as session:
-        result = await session.execute(
-            select(Parent).where(Parent.telegram_chat_id == chat_id, Parent.is_active.is_(True))
-        )
-        parent = result.scalar_one_or_none()
-        if not parent:
-            await update.message.reply_text(
-                "❌ Siz ro'yxatdan o'tmagansiz.\n\n<code>/register &lt;id&gt;</code> buyrug'ini yuboring.",
-                parse_mode="HTML",
-            )
-            return
-
-        result = await session.execute(
-            select(Student)
-            .join(StudentParent, StudentParent.student_id == Student.id)
-            .where(StudentParent.parent_id == parent.id)
-        )
-        students = list(result.scalars().all())
-
-    if not students:
-        await update.message.reply_text("Farzandlar topilmadi.")
-        return
-
-    lines = "\n".join(
-        f"• {s.first_name} {s.last_name} — {s.class_name}-sinf (karta: {s.card_id})"
-        for s in students
-    )
+async def pay_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_user.id
+    ps = PaymentService()
+    async with SessionLocal() as db:
+        r = await db.execute(select(Parent).where(Parent.telegram_chat_id == chat))
+        p = r.scalar_one_or_none()
+        if not p:
+            return await update.message.reply_text("❌ Avval /register qiling")
+        cfg = await SubscriptionService.get_settings(db)
+        st = SubscriptionService.status(p, cfg)
+        if st["code"] == "active":
+            return await update.message.reply_text(f"✅ Obuna faol: {st['label']}")
+        order = await ps.create_order(db, p, cfg)
+    url = ps.pay_url(order)
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton("💳 To'lov qilish", url=url)]])
     await update.message.reply_text(
-        f"👨‍👩‍👧 <b>Sizning farzandlaringiz:</b>\n\n{lines}",
-        parse_mode="HTML",
+        f"💳 <b>Obuna: {order.amount:,} {cfg.currency}</b>\n"
+        f"To'lovdan keyin obuna <b>avtomatik</b> yoqiladi.",
+        parse_mode="HTML", reply_markup=kb,
     )
 
 
-def build_bot_application() -> Application:
+async def mystudents(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_user.id
+    async with SessionLocal() as db:
+        r = await db.execute(select(Parent).where(Parent.telegram_chat_id == chat))
+        p = r.scalar_one_or_none()
+        if not p:
+            return await update.message.reply_text("❌ /register qiling")
+        r = await db.execute(select(Student).join(StudentParent).where(StudentParent.parent_id == p.id))
+        kids = list(r.scalars().all())
+    if not kids:
+        return await update.message.reply_text("Farzand topilmadi")
+    txt = "\n".join(f"• {s.first_name} {s.last_name} — {s.class_name} ({s.card_id})" for s in kids)
+    await update.message.reply_text(f"👨‍👩‍👧 <b>Farzandlar:</b>\n\n{txt}", parse_mode="HTML")
+
+
+def run_bot():
     if not settings.telegram_bot_token:
-        raise ValueError("TELEGRAM_BOT_TOKEN sozlanmagan")
-
+        raise ValueError("TELEGRAM_BOT_TOKEN kerak")
+    log.info("Bot ishga tushmoqda...")
     app = Application.builder().token(settings.telegram_bot_token).build()
-    app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("register", register_command))
-    app.add_handler(CommandHandler("status", status_command))
-    app.add_handler(CommandHandler("subscribe", subscribe_command))
-    app.add_handler(CommandHandler("pay", pay_command))
-    app.add_handler(CommandHandler("mystudents", mystudents_command))
-    return app
-
-
-def run_bot() -> None:
-    logger.info("Telegram bot ishga tushmoqda...")
-    app = build_bot_application()
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    for cmd, fn in [("start", start), ("help", help_cmd), ("register", register),
+                    ("status", status_cmd), ("pay", pay_cmd), ("mystudents", mystudents)]:
+        app.add_handler(CommandHandler(cmd, fn))
+    app.run_polling()
