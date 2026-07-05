@@ -12,7 +12,85 @@ Ishlatish:
 import argparse
 import multiprocessing
 import os
+import re
+import shutil
 import sys
+
+TOKEN_PATTERN = re.compile(r"^\d+:[A-Za-z0-9_-]{30,}$")
+TOKEN_PLACEHOLDER = "your_bot_token_from_botfather"
+
+
+def _read_env(env_path: str) -> dict:
+    values: dict = {}
+    if not os.path.exists(env_path):
+        return values
+    with open(env_path, encoding="utf-8") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, _, value = stripped.partition("=")
+            values[key.strip()] = value.strip()
+    return values
+
+
+def _save_token(env_path: str, token: str) -> None:
+    lines: list = []
+    if os.path.exists(env_path):
+        with open(env_path, encoding="utf-8") as f:
+            lines = f.readlines()
+
+    new_line = f"TELEGRAM_BOT_TOKEN={token}\n"
+    for i, line in enumerate(lines):
+        if line.strip().startswith("TELEGRAM_BOT_TOKEN") and "=" in line:
+            lines[i] = new_line
+            break
+    else:
+        if lines and not lines[-1].endswith("\n"):
+            lines[-1] += "\n"
+        lines.append(new_line)
+
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+
+def ensure_bot_token() -> None:
+    """Ota-ona uchun: .env faylini yaratadi va bot tokenini interaktiv so'raydi."""
+    root = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.join(root, ".env")
+    example_path = os.path.join(root, ".env.example")
+
+    if not os.path.exists(env_path) and os.path.exists(example_path):
+        shutil.copyfile(example_path, env_path)
+        print("📝 .env fayli yaratildi.")
+
+    token = _read_env(env_path).get("TELEGRAM_BOT_TOKEN", "").strip()
+    if token and token != TOKEN_PLACEHOLDER and TOKEN_PATTERN.match(token):
+        return
+
+    print()
+    print("🤖 Telegram bot tokeni kerak.")
+    print("   1. Telegramda @BotFather ga /newbot yozing")
+    print("   2. Olingan tokenni shu yerga joylashtiring")
+    print("   (Namuna: 123456789:AAE...xyz)")
+    print()
+
+    for _ in range(3):
+        try:
+            raw = input("Bot tokeni: ")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            print("⚠️  Token kiritilmadi. .env faylida TELEGRAM_BOT_TOKEN ni to'ldiring.")
+            return
+
+        cleaned = re.sub(r"\s+", "", raw)
+        if TOKEN_PATTERN.match(cleaned):
+            _save_token(env_path, cleaned)
+            print("✅ Token saqlandi (.env fayliga).")
+            return
+        print("❌ Token formati noto'g'ri. Qayta urinib ko'ring.")
+
+    print("⚠️  Token saqlanmadi. Keyinroq .env faylida TELEGRAM_BOT_TOKEN ni to'ldirishingiz mumkin.")
 
 
 def run_api() -> None:
@@ -57,9 +135,13 @@ def main() -> None:
         return
 
     if args.bot:
+        ensure_bot_token()
         print("🤖 Telegram bot ishga tushmoqda...")
         run_bot()
         return
+
+    # Ikkalasi (API + bot) ishga tushishidan oldin token so'ralsin
+    ensure_bot_token()
 
     # Ikkalasini ham ishga tushirish
     print("=" * 50)

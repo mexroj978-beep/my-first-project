@@ -86,6 +86,10 @@ cp .env.example .env
 python start.py
 ```
 
+> Birinchi ishga tushirishda dastur **bot tokenini so'raydi** — @BotFather dan olgan
+> tokeningizni joylashtirsangiz, u avtomatik `.env` fayliga saqlanadi. `.env` faylini
+> qo'lda tahrirlash shart emas.
+
 Keyin brauzerda oching: **http://localhost:8000/admin**
 
 **Alohida ishga tushirish:**
