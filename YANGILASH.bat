@@ -7,78 +7,76 @@ cd /d "%~dp0"
 echo.
 echo ====================================================
 echo   XABARNOMA - Avtomatik yangilash
-echo   Barcha yangi funksiyalar o'rnatiladi
 echo ====================================================
 echo.
 
-:: Python tekshirish
+:: Python topish
 set "PYCMD="
 py -3.12 -c "print('ok')" >nul 2>&1 && set "PYCMD=py -3.12"
 if not defined PYCMD py -3.11 -c "print('ok')" >nul 2>&1 && set "PYCMD=py -3.11"
 if not defined PYCMD python -c "print('ok')" >nul 2>&1 && set "PYCMD=python"
-
 if not defined PYCMD (
-    echo [XATO] Python topilmadi! Avval Python 3.12 o'rnating.
+    echo [XATO] Python topilmadi!
     pause
     exit /b 1
 )
 
-echo [1/5] GitHub dan yangi fayllar yuklanmoqda...
 set "TEMP_ZIP=%TEMP%\xabarnoma_update.zip"
-set "TEMP_DIR=%TEMP%\xabarnoma_update"
+set "TEMP_DIR=%TEMP%\xabarnoma_extract"
 set "REPO=https://github.com/mexroj978-beep/my-first-project/archive/refs/heads/main.zip"
 
-powershell -NoProfile -Command ^
-  "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
-   Invoke-WebRequest -Uri '%REPO%' -OutFile '%TEMP_ZIP%' -UseBasicParsing; ^
-   if (Test-Path '%TEMP_DIR%') { Remove-Item '%TEMP_DIR%' -Recurse -Force }; ^
-   Expand-Archive -Path '%TEMP_ZIP%' -DestinationPath '%TEMP_DIR%' -Force"
+echo [1/5] GitHub dan yuklab olinmoqda...
+del "%TEMP_ZIP%" >nul 2>&1
+if exist "%TEMP_DIR%" rmdir /s /q "%TEMP_DIR%"
 
-if not exist "%TEMP_DIR%\my-first-project-main\app" (
-    echo [XATO] Yuklab olish muvaffaqiyatsiz! Internetni tekshiring.
+curl -fsSL -o "%TEMP_ZIP%" "%REPO%"
+if errorlevel 1 (
+    echo [XATO] curl bilan yuklab bo'lmadi, PowerShell sinab ko'rilmoqda...
+    powershell -ExecutionPolicy Bypass -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%REPO%' -OutFile '%TEMP_ZIP%' -UseBasicParsing } catch { exit 1 }"
+    if errorlevel 1 (
+        echo [XATO] Yuklab olish muvaffaqiyatsiz! Internetni tekshiring.
+        pause
+        exit /b 1
+    )
+)
+
+if not exist "%TEMP_ZIP%" (
+    echo [XATO] ZIP fayl yuklanmadi!
     pause
     exit /b 1
 )
 echo [OK] Yuklab olindi!
 
 echo.
-echo [2/5] Eski fayllar yangilanmoqda...
-
-:: app papkasini almashtirish
-if exist "app" rmdir /s /q app
-xcopy /E /I /Y "%TEMP_DIR%\my-first-project-main\app" "app\" >nul
-
-:: scripts papkasini almashtirish
-if exist "scripts" rmdir /s /q scripts
-xcopy /E /I /Y "%TEMP_DIR%\my-first-project-main\scripts" "scripts\" >nul
-
-:: Asosiy fayllarni nusxalash
-for %%F in (
-    requirements.txt
-    start.py
-    run_bot.py
-    1_API.bat
-    2_BOT.bat
-    TOXTATISH.bat
-    ishga_tushirish.bat
-    .env.example
-) do (
-    if exist "%TEMP_DIR%\my-first-project-main\%%F" (
-        copy /Y "%TEMP_DIR%\my-first-project-main\%%F" "%%F" >nul 2>&1
-    )
+echo [2/5] Fayllar ochilmoqda...
+mkdir "%TEMP_DIR%" >nul 2>&1
+tar -xf "%TEMP_ZIP%" -C "%TEMP_DIR%" 2>nul
+if errorlevel 1 (
+    powershell -ExecutionPolicy Bypass -Command "Expand-Archive -Path '%TEMP_ZIP%' -DestinationPath '%TEMP_DIR%' -Force"
 )
 
+set "SRC=%TEMP_DIR%\my-first-project-main"
+if not exist "%SRC%\app" (
+    echo [XATO] Fayllar ochilmadi!
+    pause
+    exit /b 1
+)
+
+echo [3/5] Yangi fayllar nusxalanmoqda...
+if exist "app" rmdir /s /q app
+xcopy /E /I /Y "%SRC%\app" "app\" >nul
+if exist "scripts" rmdir /s /q scripts
+xcopy /E /I /Y "%SRC%\scripts" "scripts\" >nul
+
+for %%F in (requirements.txt start.py run_bot.py 1_API.bat 2_BOT.bat TOXTATISH.bat ishga_tushirish.bat .env.example) do (
+    if exist "%SRC%\%%F" copy /Y "%SRC%\%%F" "%%F" >nul 2>&1
+)
+copy /Y "%SRC%\YANGILASH.bat" "YANGILASH.bat" >nul 2>&1
 echo [OK] Fayllar yangilandi!
 
 echo.
-echo [3/5] Virtual muhit tekshirilmoqda...
-if not exist "venv" (
-    echo Virtual muhit yaratilmoqda...
-    %PYCMD% -m venv venv
-)
-
-echo.
 echo [4/5] Kutubxonalar o'rnatilmoqda...
+if not exist "venv" %PYCMD% -m venv venv
 call venv\Scripts\activate.bat
 python -m pip install --upgrade pip -q
 pip install -r requirements.txt
@@ -87,36 +85,25 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo [OK] Kutubxonalar tayyor!
+echo [OK] Tayyor!
 
 echo.
 echo [5/5] Tozalash...
-rmdir /s /q "%TEMP_DIR%" 2>nul
-del "%TEMP_ZIP%" 2>nul
+rmdir /s /q "%TEMP_DIR%" >nul 2>&1
+del "%TEMP_ZIP%" >nul 2>&1
 
 echo.
 echo ====================================================
 echo   MUVAFFAQIYATLI YANGILANDI!
 echo ====================================================
 echo.
-echo Yangi funksiyalar:
-echo   - Obuna bo'limi (narx sozlash)
-echo   - O'quvchi/Ota-ona tahrirlash va o'chirish
-echo   - Obuna+ tugmasi
-echo   - /pay - avtomatik to'lov va obuna
-echo.
-echo Endi ishga_tushirish.bat ni bosing!
+echo Endi TOXTATISH.bat keyin ishga_tushirish.bat bosing
+echo yoki bu oynada davom eting...
 echo.
 pause
 
-:: Avtomatik ishga tushirish
-echo Dastur ishga tushmoqda...
-start "Xabarnoma API+Bot" cmd /k "cd /d %~dp0 && call venv\Scripts\activate.bat && python start.py"
-
-timeout /t 3 >nul
+start "Xabarnoma" cmd /k "cd /d %~dp0 && call venv\Scripts\activate.bat && python start.py"
+timeout /t 4 >nul
 start http://localhost:8000/admin
-
-echo.
-echo Brauzer ochildi: http://localhost:8000/admin
-echo Ctrl+F5 bosing (kesh tozalash)
+echo Brauzer ochildi. Ctrl+F5 bosing!
 pause
