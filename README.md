@@ -77,7 +77,14 @@ cp .env.example .env
 
 1. Telegramda [@BotFather](https://t.me/BotFather) ga yozing
 2. `/newbot` buyrug'ini yuboring
-3. Olingan tokenni `.env` faylga qo'ying: `TELEGRAM_BOT_TOKEN=...`
+3. Olingan tokenni saqlang
+
+> **Eng oson yo'l:** `python start.py` ni ishga tushiring. Agar token
+> sozlanmagan bo'lsa, dastur uni **so'raydi** — tokenni oynaga qo'ying
+> (bo'sh joylar bo'lsa ham) va Enter bosing. Token avtomatik ravishda
+> `.env` fayliga saqlanadi. Qo'lda tahrirlash shart emas.
+
+Yoki qo'lda: `.env` faylga qo'ying — `TELEGRAM_BOT_TOKEN=...`
 
 ## Ishga tushirish
 

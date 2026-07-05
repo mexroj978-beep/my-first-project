@@ -96,17 +96,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist ".env" (
-    copy .env.example .env
-    echo.
-    echo DIQQAT: .env faylini oching va TELEGRAM_BOT_TOKEN ni kiriting!
-    echo.
-    pause
-)
-
 echo.
 echo ========================================
 echo   TAYYOR! Dastur ishga tushmoqda
+echo   (Bot tokeni so'ralsa, uni shu oynaga qo'ying)
 echo   Admin: http://localhost:8000/admin
 echo ========================================
 echo.

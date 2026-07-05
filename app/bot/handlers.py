@@ -152,7 +152,11 @@ async def mystudents_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 def build_bot_application() -> Application:
     if not settings.telegram_bot_token:
-        raise ValueError("TELEGRAM_BOT_TOKEN sozlanmagan")
+        raise ValueError(
+            "TELEGRAM_BOT_TOKEN sozlanmagan. "
+            "`python start.py` ni ishga tushiring va tokenni kiriting, "
+            "yoki .env faylida TELEGRAM_BOT_TOKEN ni to'ldiring."
+        )
 
     app = Application.builder().token(settings.telegram_bot_token).build()
     app.add_handler(CommandHandler("start", start_command))
