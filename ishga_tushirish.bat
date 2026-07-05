@@ -10,6 +10,9 @@ echo   Maktab Turniket + Telegram Bot
 echo   Papka: xabarnoma
 echo ========================================
 echo.
+echo DIQQAT: Agar 1_API.bat yoki 2_BOT.bat ochiq bo'lsa,
+echo avval TOXTATISH.bat ni bosing!
+echo.
 
 :: Faqat Python 3.12 yoki 3.11 qidirish (3.15 ISHLATMAYDI!)
 set "PYCMD="
