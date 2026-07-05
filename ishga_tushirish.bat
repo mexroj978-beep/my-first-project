@@ -4,97 +4,94 @@ chcp 65001 >nul
 title Maktab Xabarnoma Tizimi
 cd /d "%~dp0"
 
+echo.
 echo ========================================
 echo   Maktab Turniket + Telegram Bot
 echo   Papka: xabarnoma
 echo ========================================
 echo.
 
-:: Python 3.12 yoki 3.11 ni topish (3.15 mos emas!)
+:: Faqat Python 3.12 yoki 3.11 qidirish (3.15 ISHLATMAYDI!)
 set "PYCMD="
-where py >nul 2>&1
-if %errorlevel%==0 (
-    py -3.12 -c "print('ok')" >nul 2>&1
-    if !errorlevel!==0 set "PYCMD=py -3.12"
-)
+
+py -3.12 -c "import sys; print(sys.version)" >nul 2>&1
+if %errorlevel%==0 set "PYCMD=py -3.12"
+
 if not defined PYCMD (
-    py -3.11 -c "print('ok')" >nul 2>&1
+    py -3.11 -c "import sys; print(sys.version)" >nul 2>&1
     if !errorlevel!==0 set "PYCMD=py -3.11"
 )
+
 if not defined PYCMD (
-    py -3.13 -c "print('ok')" >nul 2>&1
+    py -3.13 -c "import sys; print(sys.version)" >nul 2>&1
     if !errorlevel!==0 set "PYCMD=py -3.13"
 )
-if not defined PYCMD (
-    python -c "print('ok')" >nul 2>&1
-    if !errorlevel!==0 set "PYCMD=python"
-)
 
 if not defined PYCMD (
-    echo [XATO] Python topilmadi!
     echo.
-    echo Python 3.12 ni o'rnating:
-    echo https://www.python.org/downloads/release/python-3120/
+    echo [XATO] Python 3.12 topilmadi!
     echo.
-    echo O'rnatishda "Add Python to PATH" ni belgilang!
+    echo Sizda Python 3.15 bor - u MOS EMAS.
+    echo.
+    echo ========================================
+    echo   QILISH KERAK:
+    echo ========================================
+    echo.
+    echo 1. Python 3.12 yuklab oling:
+    echo    https://www.python.org/downloads/release/python-3120/
+    echo    "Windows installer 64-bit" ni bosing
+    echo.
+    echo 2. O'rnatishda belgilang:
+    echo    [x] Add python.exe to PATH
+    echo.
+    echo 3. "venv" papkasini o'chiring
+    echo.
+    echo 4. Bu faylni qayta bosing
+    echo.
+    echo ========================================
     pause
     exit /b 1
 )
 
-:: Python versiyasini tekshirish
-for /f "tokens=2 delims= " %%v in ('%PYCMD% --version 2^>^&1') do set PYVER=%%v
-echo Python versiyasi: %PYVER%
+for /f "tokens=*" %%v in ('%PYCMD% --version 2^>^&1') do set PYVER=%%v
+echo [OK] %PYVER% topildi
 echo.
 
-echo %PYVER% | findstr /R "^3\.1[5-9]\." >nul
-if %errorlevel%==0 (
-    echo [XATO] Python %PYVER% juda yangi - dastur bilan mos emas!
-    echo.
-    echo YECHIM:
-    echo   1. Python 3.12 ni o'rnating:
-    echo      https://www.python.org/downloads/release/python-3120/
-    echo   2. "venv" papkasini o'chiring
-    echo   3. ishga_tushirish.bat ni qayta bosing
-    echo.
+:: venv har doim to'g'ri Python bilan qayta yaratilsin
+if exist "venv" (
+    echo Eski venv o'chirilmoqda...
+    rmdir /s /q venv
+)
+
+echo Virtual muhit yaratilmoqda (%PYCMD%)...
+%PYCMD% -m venv venv
+if errorlevel 1 (
+    echo [XATO] venv yaratib bo'lmadi!
     pause
     exit /b 1
-)
-
-:: Eski venv noto'g'ri Python bilan yaratilgan bo'lsa - o'chirish
-if exist "venv\pyvenv.cfg" (
-    findstr /C:"3.15" "venv\pyvenv.cfg" >nul 2>&1
-    if %errorlevel%==0 (
-        echo Eski venv Python 3.15 bilan yaratilgan - yangilanmoqda...
-        rmdir /s /q venv
-    )
-)
-
-if not exist "venv" (
-    echo Virtual muhit yaratilmoqda (%PYCMD%)...
-    %PYCMD% -m venv venv
-    if errorlevel 1 (
-        echo [XATO] venv yaratib bo'lmadi!
-        pause
-        exit /b 1
-    )
 )
 
 call venv\Scripts\activate.bat
 
-echo pip yangilanmoqda...
-python -m pip install --upgrade pip setuptools wheel -q
+:: Tekshirish: venv ichida 3.15 bo'lmasin
+findstr /C:"3.15" "venv\pyvenv.cfg" >nul 2>&1
+if %errorlevel%==0 (
+    echo.
+    echo [XATO] venv yana Python 3.15 bilan yaratildi!
+    echo Python 3.12 ni qayta o'rnating va PATH ni tekshiring.
+    pause
+    exit /b 1
+)
 
-echo Kutubxonalar o'rnatilmoqda...
+echo pip yangilanmoqda...
+python -m pip install --upgrade pip -q
+
+echo Kutubxonalar o'rnatilmoqda (1-2 daqiqa)...
 pip install -r requirements.txt
 if errorlevel 1 (
     echo.
-    echo [XATO] Kutubxonalar o'rnatilmadi!
-    echo.
-    echo YECHIM:
-    echo   1. "venv" papkasini o'chiring
-    echo   2. Python 3.12 o'rnating
-    echo   3. Qayta urinib ko'ring
-    echo.
+    echo [XATO] O'rnatish muvaffaqiyatsiz!
+    echo Python 3.12 o'rnatilganini tekshiring: py -3.12 --version
     pause
     exit /b 1
 )
@@ -109,10 +106,9 @@ if not exist ".env" (
 
 echo.
 echo ========================================
-echo   Dastur ishga tushmoqda!
-echo   Admin panel: http://localhost:8000/admin
+echo   TAYYOR! Dastur ishga tushmoqda
+echo   Admin: http://localhost:8000/admin
 echo ========================================
 echo.
 python start.py
-
 pause
