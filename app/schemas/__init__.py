@@ -65,14 +65,55 @@ class ParentCreate(BaseModel):
     student_ids: list[int] = Field(default_factory=list)
 
 
+class StudentUpdate(BaseModel):
+    school_id: int | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    class_name: str | None = None
+    card_id: str | None = None
+    is_active: bool | None = None
+
+
+class ParentUpdate(BaseModel):
+    full_name: str | None = None
+    phone: str | None = None
+    is_active: bool | None = None
+    student_ids: list[int] | None = None
+
+
 class ParentResponse(BaseModel):
     id: int
     full_name: str
     phone: str | None
     telegram_chat_id: int | None
     is_active: bool
+    bot_registered_at: datetime | None = None
+    subscription_until: datetime | None = None
+    subscription_status: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class SubscriptionSettingsResponse(BaseModel):
+    trial_days: int
+    subscription_price: int
+    subscription_period_days: int
+    currency: str
+    payment_info: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class SubscriptionSettingsUpdate(BaseModel):
+    trial_days: int | None = None
+    subscription_price: int | None = None
+    subscription_period_days: int | None = None
+    currency: str | None = None
+    payment_info: str | None = None
+
+
+class ActivateSubscription(BaseModel):
+    months: int = Field(default=1, ge=1, le=12)
 
 
 class DeviceCreate(BaseModel):

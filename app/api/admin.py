@@ -9,19 +9,26 @@ from app.models.attendance import AttendanceEvent
 from app.models.device import Device
 from app.models.parent import Parent, StudentParent
 from app.models.school import School
+from app.models.settings import AppSettings
 from app.models.student import Student
 from app.schemas import (
+    ActivateSubscription,
     AttendanceResponse,
     DeviceCreate,
     DeviceResponse,
     LinkParentStudent,
     ParentCreate,
     ParentResponse,
+    ParentUpdate,
     SchoolCreate,
     SchoolResponse,
     StudentCreate,
     StudentResponse,
+    StudentUpdate,
+    SubscriptionSettingsResponse,
+    SubscriptionSettingsUpdate,
 )
+from app.services.subscription import SubscriptionService
 
 router = APIRouter(prefix="/api", tags=["Admin"])
 
@@ -69,6 +76,41 @@ async def list_students(db: AsyncSession = Depends(get_db)) -> list[Student]:
     return list(result.scalars().all())
 
 
+@router.put("/students/{student_id}", response_model=StudentResponse, dependencies=[Depends(verify_admin_key)])
+async def update_student(
+    student_id: int, payload: StudentUpdate, db: AsyncSession = Depends(get_db)
+) -> Student:
+    student = await db.get(Student, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="O'quvchi topilmadi")
+
+    data = payload.model_dump(exclude_unset=True)
+    if "card_id" in data and data["card_id"] != student.card_id:
+        existing = await db.execute(select(Student).where(Student.card_id == data["card_id"]))
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Bu karta allaqachon mavjud")
+
+    for key, value in data.items():
+        setattr(student, key, value)
+    await db.commit()
+    await db.refresh(student)
+    return student
+
+
+@router.delete("/students/{student_id}", dependencies=[Depends(verify_admin_key)])
+async def delete_student(student_id: int, db: AsyncSession = Depends(get_db)) -> dict:
+    student = await db.get(Student, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="O'quvchi topilmadi")
+
+    links = await db.execute(select(StudentParent).where(StudentParent.student_id == student_id))
+    for link in links.scalars().all():
+        await db.delete(link)
+    await db.delete(student)
+    await db.commit()
+    return {"success": True, "message": "O'quvchi o'chirildi"}
+
+
 @router.post("/parents", response_model=ParentResponse, dependencies=[Depends(verify_admin_key)])
 async def create_parent(payload: ParentCreate, db: AsyncSession = Depends(get_db)) -> Parent:
     parent = Parent(full_name=payload.full_name, phone=payload.phone)
@@ -86,9 +128,112 @@ async def create_parent(payload: ParentCreate, db: AsyncSession = Depends(get_db
 
 
 @router.get("/parents", response_model=list[ParentResponse], dependencies=[Depends(verify_admin_key)])
-async def list_parents(db: AsyncSession = Depends(get_db)) -> list[Parent]:
+async def list_parents(db: AsyncSession = Depends(get_db)) -> list[dict]:
     result = await db.execute(select(Parent).order_by(Parent.id))
-    return list(result.scalars().all())
+    parents = list(result.scalars().all())
+    settings = await SubscriptionService.get_settings(db)
+
+    response = []
+    for p in parents:
+        status = SubscriptionService.get_status(p, settings)
+        response.append(
+            ParentResponse(
+                id=p.id,
+                full_name=p.full_name,
+                phone=p.phone,
+                telegram_chat_id=p.telegram_chat_id,
+                is_active=p.is_active,
+                bot_registered_at=p.bot_registered_at,
+                subscription_until=p.subscription_until,
+                subscription_status=status["label"],
+            )
+        )
+    return response
+
+
+@router.put("/parents/{parent_id}", response_model=ParentResponse, dependencies=[Depends(verify_admin_key)])
+async def update_parent(
+    parent_id: int, payload: ParentUpdate, db: AsyncSession = Depends(get_db)
+) -> ParentResponse:
+    parent = await db.get(Parent, parent_id)
+    if not parent:
+        raise HTTPException(status_code=404, detail="Ota-ona topilmadi")
+
+    data = payload.model_dump(exclude_unset=True)
+    student_ids = data.pop("student_ids", None)
+
+    for key, value in data.items():
+        setattr(parent, key, value)
+
+    if student_ids is not None:
+        existing = await db.execute(select(StudentParent).where(StudentParent.parent_id == parent_id))
+        for link in existing.scalars().all():
+            await db.delete(link)
+        for sid in student_ids:
+            if await db.get(Student, sid):
+                db.add(StudentParent(student_id=sid, parent_id=parent_id))
+
+    await db.commit()
+    await db.refresh(parent)
+    settings = await SubscriptionService.get_settings(db)
+    status = SubscriptionService.get_status(parent, settings)
+    return ParentResponse(
+        id=parent.id,
+        full_name=parent.full_name,
+        phone=parent.phone,
+        telegram_chat_id=parent.telegram_chat_id,
+        is_active=parent.is_active,
+        bot_registered_at=parent.bot_registered_at,
+        subscription_until=parent.subscription_until,
+        subscription_status=status["label"],
+    )
+
+
+@router.delete("/parents/{parent_id}", dependencies=[Depends(verify_admin_key)])
+async def delete_parent(parent_id: int, db: AsyncSession = Depends(get_db)) -> dict:
+    parent = await db.get(Parent, parent_id)
+    if not parent:
+        raise HTTPException(status_code=404, detail="Ota-ona topilmadi")
+
+    links = await db.execute(select(StudentParent).where(StudentParent.parent_id == parent_id))
+    for link in links.scalars().all():
+        await db.delete(link)
+    await db.delete(parent)
+    await db.commit()
+    return {"success": True, "message": "Ota-ona o'chirildi"}
+
+
+@router.post("/parents/{parent_id}/subscribe", dependencies=[Depends(verify_admin_key)])
+async def activate_parent_subscription(
+    parent_id: int,
+    payload: ActivateSubscription,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    parent = await db.get(Parent, parent_id)
+    if not parent:
+        raise HTTPException(status_code=404, detail="Ota-ona topilmadi")
+
+    settings = await SubscriptionService.get_settings(db)
+    await SubscriptionService.activate_subscription(db, parent, settings, payload.months)
+    status = SubscriptionService.get_status(parent, settings)
+    return {"success": True, "message": f"Obuna faollashtirildi: {status['label']}"}
+
+
+@router.get("/settings/subscription", response_model=SubscriptionSettingsResponse, dependencies=[Depends(verify_admin_key)])
+async def get_subscription_settings(db: AsyncSession = Depends(get_db)) -> AppSettings:
+    return await SubscriptionService.get_settings(db)
+
+
+@router.put("/settings/subscription", response_model=SubscriptionSettingsResponse, dependencies=[Depends(verify_admin_key)])
+async def update_subscription_settings(
+    payload: SubscriptionSettingsUpdate, db: AsyncSession = Depends(get_db)
+) -> AppSettings:
+    settings = await SubscriptionService.get_settings(db)
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(settings, key, value)
+    await db.commit()
+    await db.refresh(settings)
+    return settings
 
 
 @router.post("/parents/link", dependencies=[Depends(verify_admin_key)])

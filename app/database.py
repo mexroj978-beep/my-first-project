@@ -24,3 +24,17 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await _migrate_columns(conn)
+
+
+async def _migrate_columns(conn) -> None:
+    """Mavjud SQLite bazaga yangi ustunlar qo'shish."""
+    migrations = [
+        "ALTER TABLE parents ADD COLUMN bot_registered_at DATETIME",
+        "ALTER TABLE parents ADD COLUMN subscription_until DATETIME",
+    ]
+    for sql in migrations:
+        try:
+            await conn.exec_driver_sql(sql)
+        except Exception:
+            pass

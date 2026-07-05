@@ -9,6 +9,7 @@ from app.models.device import Device
 from app.models.parent import Parent, StudentParent
 from app.models.student import Student
 from app.schemas import Direction, TurnstileEvent
+from app.services.subscription import SubscriptionService
 from app.services.telegram import TelegramNotifier
 
 
@@ -40,7 +41,8 @@ class AttendanceService:
         await session.flush()
 
         parents = await self._get_active_parents(session, student.id)
-        sent_count = await self._notify_parents(student, parents, direction, event_time, device)
+        settings = await SubscriptionService.get_settings(session)
+        sent_count = await self._notify_parents(student, parents, direction, event_time, device, settings)
 
         attendance.notified = sent_count > 0
         await session.commit()
@@ -87,6 +89,7 @@ class AttendanceService:
         direction: str,
         event_time: datetime,
         device: Device | None,
+        settings,
     ) -> int:
         if not parents:
             return 0
@@ -100,6 +103,8 @@ class AttendanceService:
 
         sent = 0
         for parent in parents:
+            if not SubscriptionService.can_receive_notifications(parent, settings):
+                continue
             if parent.telegram_chat_id and await self.notifier.send_message(parent.telegram_chat_id, message):
                 sent += 1
         return sent

@@ -15,6 +15,8 @@ class Parent(Base):
     telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, index=True)
     telegram_username: Mapped[str | None] = mapped_column(String(100))
     is_active: Mapped[bool] = mapped_column(default=True)
+    bot_registered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    subscription_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     students: Mapped[list["Student"]] = relationship(

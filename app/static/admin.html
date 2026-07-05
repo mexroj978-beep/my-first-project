@@ -90,6 +90,16 @@
     button[type=submit]:hover, .btn:hover { background: #1d4ed8; }
     .btn-test { background: #059669; }
     .btn-test:hover { background: #047857; }
+    .btn-sm { padding: .35rem .65rem; font-size: .78rem; margin-right: .25rem; }
+    .btn-edit { background: #f59e0b; }
+    .btn-edit:hover { background: #d97706; }
+    .btn-del { background: #ef4444; }
+    .btn-del:hover { background: #dc2626; }
+    .btn-sub { background: #7c3aed; }
+    .btn-sub:hover { background: #6d28d9; }
+    .badge-expired { background: #fee2e2; color: #991b1b; }
+    .badge-trial { background: #dbeafe; color: #1e40af; }
+    .actions { white-space: nowrap; }
     table { width: 100%; border-collapse: collapse; font-size: .875rem; }
     th { text-align: left; padding: .6rem .75rem; background: #f8fafc; color: #64748b; font-weight: 600; }
     td { padding: .6rem .75rem; border-top: 1px solid #f1f5f9; }
@@ -168,6 +178,7 @@
       <button class="tab" onclick="showTab('parents')">👨‍👩‍👧 Ota-onalar</button>
       <button class="tab" onclick="showTab('devices')">🚪 Turniketlar</button>
       <button class="tab" onclick="showTab('schools')">🏫 Maktablar</button>
+      <button class="tab" onclick="showTab('subscription')">💳 Obuna</button>
       <button class="tab" onclick="showTab('test')">🧪 Test</button>
     </div>
 
@@ -192,7 +203,7 @@
         <div><button type="submit">Qo'shish</button></div>
       </form>
       <table>
-        <thead><tr><th>ID</th><th>Ism</th><th>Sinf</th><th>Karta ID</th><th>Holat</th></tr></thead>
+        <thead><tr><th>ID</th><th>Ism</th><th>Sinf</th><th>Karta ID</th><th>Holat</th><th>Amallar</th></tr></thead>
         <tbody id="studentsTable"></tbody>
       </table>
     </div>
@@ -207,12 +218,13 @@
         <div><button type="submit">Qo'shish</button></div>
       </form>
       <table>
-        <thead><tr><th>ID</th><th>Ism</th><th>Telefon</th><th>Telegram</th><th>Bot buyrug'i</th></tr></thead>
+        <thead><tr><th>ID</th><th>Ism</th><th>Telefon</th><th>Telegram</th><th>Obuna</th><th>Bot buyrug'i</th><th>Amallar</th></tr></thead>
         <tbody id="parentsTable"></tbody>
       </table>
       <div class="info-box">
         Ota-ona Telegram botda <code>/register ID</code> buyrug'ini yuborishi kerak.<br>
-        Masalan: Parent ID = 1 bo'lsa → <code>/register 1</code>
+        🎁 Birinchi <b>3 kun bepul</b>, keyin obuna kerak.<br>
+        To'lovdan keyin <b>Obuna+</b> tugmasini bosing.
       </div>
     </div>
 
@@ -247,6 +259,24 @@
         <thead><tr><th>ID</th><th>Nomi</th><th>Manzil</th></tr></thead>
         <tbody id="schoolsTable"></tbody>
       </table>
+    </div>
+
+    <!-- OBUNA -->
+    <div id="panel-subscription" class="panel">
+      <h2>Obuna sozlamalari</h2>
+      <form id="subscriptionForm">
+        <div><label>Bepul sinov (kun)</label><input name="trial_days" type="number" min="0" value="3"></div>
+        <div><label>Obuna narxi</label><input name="subscription_price" type="number" min="0" value="30000"></div>
+        <div><label>Obuna davri (kun)</label><input name="subscription_period_days" type="number" min="1" value="30"></div>
+        <div><label>Valyuta</label><input name="currency" value="UZS"></div>
+        <div style="grid-column: 1/-1"><label>To'lov ma'lumoti (ota-onalarga ko'rinadi)</label>
+          <input name="payment_info" placeholder="Karta raqami yoki to'lov yo'riqnomasi"></div>
+        <div><button type="submit">💾 Saqlash</button></div>
+      </form>
+      <div class="info-box">
+        Ota-ona botga ulanganda avtomatik bepul sinov boshlanadi.<br>
+        Sinov tugagach xabarlar to'xtaydi — to'lovdan keyin <b>Obuna+</b> tugmasini bosing.
+      </div>
     </div>
 
     <!-- TEST -->
@@ -294,11 +324,82 @@
 
     function showTab(name) {
       document.querySelectorAll('.tab').forEach((t, i) => {
-        const tabs = ['attendance','students','parents','devices','schools','test'];
+        const tabs = ['attendance','students','parents','devices','schools','subscription','test'];
         t.classList.toggle('active', tabs[i] === name);
       });
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.getElementById('panel-' + name).classList.add('active');
+    }
+
+    function subBadge(status) {
+      if (!status) return '<span class="badge badge-warn">-</span>';
+      if (status.includes('Bepul')) return `<span class="badge badge-trial">${status}</span>`;
+      if (status.includes('faol')) return `<span class="badge badge-ok">${status}</span>`;
+      if (status.includes('tugagan')) return `<span class="badge badge-expired">${status}</span>`;
+      return `<span class="badge badge-warn">${status}</span>`;
+    }
+
+    async function editStudent(id) {
+      const s = (await api('GET', '/api/students')).find(x => x.id === id);
+      if (!s) return;
+      const first_name = prompt('Ism:', s.first_name);
+      if (first_name === null) return;
+      const last_name = prompt('Familiya:', s.last_name);
+      if (last_name === null) return;
+      const class_name = prompt('Sinf:', s.class_name);
+      if (class_name === null) return;
+      const card_id = prompt('Karta ID:', s.card_id);
+      if (card_id === null) return;
+      try {
+        await api('PUT', `/api/students/${id}`, { first_name, last_name, class_name, card_id });
+        showAlert('O\'quvchi yangilandi!');
+        loadAll();
+      } catch (e) { showAlert(e.message, 'error'); }
+    }
+
+    async function deleteStudent(id) {
+      if (!confirm('O\'quvchini o\'chirishni tasdiqlaysizmi?')) return;
+      try {
+        await api('DELETE', `/api/students/${id}`);
+        showAlert('O\'quvchi o\'chirildi!');
+        loadAll();
+      } catch (e) { showAlert(e.message, 'error'); }
+    }
+
+    async function editParent(id) {
+      const p = (await api('GET', '/api/parents')).find(x => x.id === id);
+      if (!p) return;
+      const full_name = prompt('To\'liq ism:', p.full_name);
+      if (full_name === null) return;
+      const phone = prompt('Telefon:', p.phone || '');
+      if (phone === null) return;
+      const student_ids_str = prompt('O\'quvchi ID lar (vergul bilan):', '');
+      const body = { full_name, phone: phone || null };
+      if (student_ids_str) body.student_ids = student_ids_str.split(',').map(s => +s.trim()).filter(Boolean);
+      try {
+        await api('PUT', `/api/parents/${id}`, body);
+        showAlert('Ota-ona yangilandi!');
+        loadAll();
+      } catch (e) { showAlert(e.message, 'error'); }
+    }
+
+    async function deleteParent(id) {
+      if (!confirm('Ota-onani o\'chirishni tasdiqlaysizmi?')) return;
+      try {
+        await api('DELETE', `/api/parents/${id}`);
+        showAlert('Ota-ona o\'chirildi!');
+        loadAll();
+      } catch (e) { showAlert(e.message, 'error'); }
+    }
+
+    async function activateSub(id) {
+      const months = prompt('Nechi oy obuna faollashtirilsin?', '1');
+      if (!months) return;
+      try {
+        const res = await api('POST', `/api/parents/${id}/subscribe`, { months: +months });
+        showAlert(res.message);
+        loadAll();
+      } catch (e) { showAlert(e.message, 'error'); }
     }
 
     function fmtTime(iso) {
@@ -307,12 +408,13 @@
 
     async function loadAll() {
       try {
-        const [schools, students, parents, devices, attendance] = await Promise.all([
+        const [schools, students, parents, devices, attendance, subSettings] = await Promise.all([
           api('GET', '/api/schools'),
           api('GET', '/api/students'),
           api('GET', '/api/parents'),
           api('GET', '/api/devices'),
           api('GET', '/api/attendance'),
+          api('GET', '/api/settings/subscription'),
         ]);
 
         document.getElementById('statSchools').textContent = schools.length;
@@ -332,12 +434,30 @@
         document.getElementById('deviceSchoolSelect').innerHTML = schoolOpts;
 
         document.getElementById('studentsTable').innerHTML = students.map(s =>
-          `<tr><td>${s.id}</td><td>${s.first_name} ${s.last_name}</td><td>${s.class_name}</td><td><code>${s.card_id}</code></td><td><span class="badge badge-ok">Faol</span></td></tr>`
-        ).join('') || '<tr><td colspan="5">O\'quvchi yo\'q</td></tr>';
+          `<tr><td>${s.id}</td><td>${s.first_name} ${s.last_name}</td><td>${s.class_name}</td><td><code>${s.card_id}</code></td><td><span class="badge badge-ok">Faol</span></td>
+          <td class="actions"><button class="btn btn-sm btn-edit" onclick="editStudent(${s.id})">✏️</button><button class="btn btn-sm btn-del" onclick="deleteStudent(${s.id})">🗑</button></td></tr>`
+        ).join('') || '<tr><td colspan="6">O\'quvchi yo\'q</td></tr>';
 
         document.getElementById('parentsTable').innerHTML = parents.map(p =>
-          `<tr><td>${p.id}</td><td>${p.full_name}</td><td>${p.phone || '-'}</td><td>${p.telegram_chat_id ? '<span class="badge badge-ok">Ulangan</span>' : '<span class="badge badge-warn">Kutilmoqda</span>'}</td><td><code>/register ${p.id}</code></td></tr>`
-        ).join('') || '<tr><td colspan="5">Ota-ona yo\'q</td></tr>';
+          `<tr><td>${p.id}</td><td>${p.full_name}</td><td>${p.phone || '-'}</td>
+          <td>${p.telegram_chat_id ? '<span class="badge badge-ok">Ulangan</span>' : '<span class="badge badge-warn">Kutilmoqda</span>'}</td>
+          <td>${subBadge(p.subscription_status)}</td>
+          <td><code>/register ${p.id}</code></td>
+          <td class="actions">
+            <button class="btn btn-sm btn-sub" onclick="activateSub(${p.id})">Obuna+</button>
+            <button class="btn btn-sm btn-edit" onclick="editParent(${p.id})">✏️</button>
+            <button class="btn btn-sm btn-del" onclick="deleteParent(${p.id})">🗑</button>
+          </td></tr>`
+        ).join('') || '<tr><td colspan="7">Ota-ona yo\'q</td></tr>';
+
+        const sf = document.getElementById('subscriptionForm');
+        if (subSettings && sf) {
+          sf.trial_days.value = subSettings.trial_days;
+          sf.subscription_price.value = subSettings.subscription_price;
+          sf.subscription_period_days.value = subSettings.subscription_period_days;
+          sf.currency.value = subSettings.currency;
+          sf.payment_info.value = subSettings.payment_info || '';
+        }
 
         document.getElementById('devicesTable').innerHTML = devices.map(d =>
           `<tr><td>${d.id}</td><td><code>${d.device_code}</code></td><td>${d.name}</td><td>${d.location}</td><td><span class="badge badge-${d.direction === 'in' ? 'in' : 'out'}">${d.direction === 'in' ? 'Kirish' : 'Chiqish'}</span></td></tr>`
@@ -404,6 +524,22 @@
         });
         showAlert('Turniket qo\'shildi!');
         e.target.reset();
+        loadAll();
+      } catch (err) { showAlert(err.message, 'error'); }
+    };
+
+    document.getElementById('subscriptionForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        await api('PUT', '/api/settings/subscription', {
+          trial_days: +fd.get('trial_days'),
+          subscription_price: +fd.get('subscription_price'),
+          subscription_period_days: +fd.get('subscription_period_days'),
+          currency: fd.get('currency'),
+          payment_info: fd.get('payment_info') || null,
+        });
+        showAlert('Obuna sozlamalari saqlandi!');
         loadAll();
       } catch (err) { showAlert(err.message, 'error'); }
     };
