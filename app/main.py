@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from app.api.admin import router as admin_router
 from app.api.payments import pay_page_router, router as payment_router
@@ -54,7 +54,16 @@ async def root():
 
 @app.get("/admin")
 async def admin_panel():
-    return FileResponse(STATIC_DIR / "admin.html")
+    content = (STATIC_DIR / "admin.html").read_text(encoding="utf-8")
+    return Response(
+        content=content,
+        media_type="text/html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 @app.get("/health")
