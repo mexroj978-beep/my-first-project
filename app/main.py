@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from app.api.admin import router as admin_router
+from app.api.payments import pay_page_router, router as payment_router
 from app.api.webhooks import router as webhook_router
 from app.config import settings
 from app.database import init_db
@@ -35,6 +36,8 @@ app.add_middleware(
 )
 
 app.include_router(webhook_router)
+app.include_router(payment_router)
+app.include_router(pay_page_router)
 app.include_router(admin_router)
 
 
