@@ -24,15 +24,23 @@ async def pay_page(oid: int, db: AsyncSession = Depends(get_db)):
     if order.status == "paid":
         return HTMLResponse("<h1>✅ To'lov qilingan</h1><p>Botga qayting</p>")
     ps = PaymentService()
-    url = ps.pay_url(order)
+    from app.services.subscription import SubscriptionService as SS
+    cfg = await SS.get_settings(db)
+    url = ps.pay_url(order, cfg)
     demo = f"""<form method="POST" action="/pay/{oid}/done" style="margin-top:20px">
       <button style="padding:15px 40px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer">
         💳 To'lov qildim</button></form>""" if settings.payment_demo_mode else ""
-    click = f'<a href="{url}" style="display:inline-block;padding:15px 40px;background:#00A651;color:#fff;text-decoration:none;border-radius:8px">Click orqali to\'lash</a>' if settings.click_service_id else ""
+    card = ""
+    if cfg.payment_card_number:
+        holder = f"<p>👤 {cfg.payment_card_holder}</p>" if cfg.payment_card_holder else ""
+        card = f'<p style="font-size:18px">🏦 Karta: <b style="letter-spacing:1px">{cfg.payment_card_number}</b></p>{holder}'
+    show_click = cfg.payment_click_link or settings.click_service_id
+    click = f'<a href="{url}" style="display:inline-block;padding:15px 40px;background:#00A651;color:#fff;text-decoration:none;border-radius:8px;margin:10px">Click orqali to\'lash</a>' if show_click else ""
+    info = f'<p style="color:#666">{cfg.payment_info}</p>' if cfg.payment_info else ""
     return HTMLResponse(f"""<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>To'lov</title></head><body style="font-family:sans-serif;text-align:center;padding:40px">
     <h1>💳 Obuna to'lovi</h1><p style="font-size:28px;font-weight:bold">{order.amount:,} {order.currency}</p>
-    {click}{demo}<p style="color:#666;margin-top:20px">To'lovdan keyin obuna avtomatik yoqiladi</p></body></html>""")
+    {card}{click}{demo}{info}<p style="color:#666;margin-top:20px">To'lovdan keyin obuna avtomatik yoqiladi</p></body></html>""")
 
 
 @router.post("/pay/{oid}/done", response_class=HTMLResponse)

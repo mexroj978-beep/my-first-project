@@ -298,14 +298,27 @@
         <div><label>Obuna davri (kun)</label><input name="subscription_period_days" type="number" min="1" value="30"></div>
         <div><label>Valyuta</label><input name="currency" value="UZS"></div>
         <div style="grid-column: 1/-1">
-          <label>To'lov ma'lumoti (ota-onalarga ko'rinadi)</label>
-          <textarea name="payment_info" placeholder="Karta raqami yoki to'lov yo'riqnomasi"></textarea>
+          <label>🏦 Karta raqami (ota-onalarga ko'rinadi)</label>
+          <input name="payment_card_number" placeholder="8600 1234 5678 9012">
+        </div>
+        <div style="grid-column: 1/-1">
+          <label>👤 Karta egasi</label>
+          <input name="payment_card_holder" placeholder="KARIMOV ALI">
+        </div>
+        <div style="grid-column: 1/-1">
+          <label>📱 Click P2P havolasi</label>
+          <input name="payment_click_link" placeholder="https://my.click.uz/clickp2p/...">
+        </div>
+        <div style="grid-column: 1/-1">
+          <label>ℹ️ Qo'shimcha ma'lumot</label>
+          <textarea name="payment_info" placeholder="Masalan: To'lovdan keyin chek skrinshotini yuboring"></textarea>
         </div>
         <div><button type="submit">💾 Saqlash</button></div>
       </form>
       <div class="info-box">
-        Ota-ona botda <code>/pay</code> buyrug'i bilan to'lov qiladi — obuna avtomatik yoqiladi.<br>
-        Click ulanganda to'lov to'liq avtomatik. Demo rejimda test qilish mumkin.
+        Ota-ona botda <code>/pay</code> bosganda karta raqami va/yoki Click tugmasi chiqadi.<br>
+        Click P2P havolasini <b>my.click.uz/clickp2p/...</b> dan oling va yuqoriga yozing.<br>
+        Karta orqali to'lovda admin <b>Obuna+</b> tugmasini bosadi.
       </div>
     </div>
 
@@ -558,6 +571,9 @@
           sf.subscription_price.value = subSettings.subscription_price;
           sf.subscription_period_days.value = subSettings.subscription_period_days;
           sf.currency.value = subSettings.currency;
+          sf.payment_card_number.value = subSettings.payment_card_number || '';
+          sf.payment_card_holder.value = subSettings.payment_card_holder || '';
+          sf.payment_click_link.value = subSettings.payment_click_link || '';
           sf.payment_info.value = subSettings.payment_info || '';
         }
 
@@ -673,6 +689,9 @@
           subscription_price: +fd.get('subscription_price'),
           subscription_period_days: +fd.get('subscription_period_days'),
           currency: fd.get('currency'),
+          payment_card_number: fd.get('payment_card_number') || null,
+          payment_card_holder: fd.get('payment_card_holder') || null,
+          payment_click_link: fd.get('payment_click_link') || null,
           payment_info: fd.get('payment_info') || null,
         });
         showAlert('Obuna sozlamalari saqlandi!');

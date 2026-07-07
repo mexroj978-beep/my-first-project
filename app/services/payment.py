@@ -25,7 +25,9 @@ class PaymentService:
         await db.refresh(order)
         return order
 
-    def pay_url(self, order: PaymentOrder) -> str:
+    def pay_url(self, order: PaymentOrder, cfg: AppSettings | None = None) -> str:
+        if cfg and cfg.payment_click_link:
+            return cfg.payment_click_link.strip()
         if settings.click_service_id and settings.click_merchant_id:
             return (
                 f"https://my.click.uz/services/pay?service_id={settings.click_service_id}"
@@ -33,6 +35,24 @@ class PaymentService:
                 f"&transaction_param={order.id}"
             )
         return f"{settings.app_base_url.rstrip('/')}/pay/{order.id}"
+
+    def pay_message(self, order: PaymentOrder, cfg: AppSettings) -> str:
+        lines = [
+            f"💳 <b>Obuna to'lovi</b>",
+            f"",
+            f"💰 Summa: <b>{order.amount:,} {cfg.currency}</b>",
+            f"🧾 Buyurtma: <b>#{order.id}</b>",
+        ]
+        if cfg.payment_card_number:
+            holder = f"\n👤 {cfg.payment_card_holder}" if cfg.payment_card_holder else ""
+            lines += ["", "🏦 <b>Karta raqami:</b>", f"<code>{cfg.payment_card_number}</code>{holder}"]
+        if cfg.payment_click_link:
+            lines += ["", "📱 Quyidagi tugma orqali <b>Click</b> da to'lang."]
+        elif cfg.payment_card_number:
+            lines += ["", "💬 To'lovdan keyin chek skrinshotini maktab adminiga yuboring."]
+        if cfg.payment_info:
+            lines += ["", f"ℹ️ {cfg.payment_info}"]
+        return "\n".join(lines)
 
     async def complete(self, db: AsyncSession, order: PaymentOrder, ext_id: str | None = None) -> None:
         if order.status == "paid":

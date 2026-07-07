@@ -101,13 +101,13 @@ async def pay_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if st["code"] == "active":
             return await update.message.reply_text(f"✅ Obuna faol: {st['label']}")
         order = await ps.create_order(db, p, cfg)
-    url = ps.pay_url(order)
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton("💳 To'lov qilish", url=url)]])
-    await update.message.reply_text(
-        f"💳 <b>Obuna: {order.amount:,} {cfg.currency}</b>\n"
-        f"To'lovdan keyin obuna <b>avtomatik</b> yoqiladi.",
-        parse_mode="HTML", reply_markup=kb,
-    )
+        url = ps.pay_url(order, cfg)
+        msg = ps.pay_message(order, cfg)
+    buttons = []
+    if url:
+        buttons.append([InlineKeyboardButton("💳 Click orqali to'lash", url=url)])
+    kb = InlineKeyboardMarkup(buttons) if buttons else None
+    await update.message.reply_text(msg, parse_mode="HTML", reply_markup=kb)
 
 
 async def mystudents(update: Update, ctx: ContextTypes.DEFAULT_TYPE):

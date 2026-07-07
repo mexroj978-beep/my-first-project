@@ -128,6 +128,9 @@ class SettingsOut(BaseModel):
     subscription_price: int
     subscription_period_days: int
     currency: str
+    payment_card_number: str | None = None
+    payment_card_holder: str | None = None
+    payment_click_link: str | None = None
     payment_info: str | None
     model_config = {"from_attributes": True}
 
@@ -137,6 +140,9 @@ class SettingsUpdate(BaseModel):
     subscription_price: int | None = None
     subscription_period_days: int | None = None
     currency: str | None = None
+    payment_card_number: str | None = None
+    payment_card_holder: str | None = None
+    payment_click_link: str | None = None
     payment_info: str | None = None
 
 
