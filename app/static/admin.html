@@ -243,7 +243,8 @@
         </table>
       </div>
       <div class="info-box">
-        Ota-ona Telegram botda <code>/register ID</code> buyrug'ini yuborishi kerak.<br>
+        Ota-ona Telegram botda <code>/register ID telefon</code> buyrug'ini yuborishi kerak.<br>
+        Masalan: <code>/register 1 901234567</code> — telefon admin paneldagi raqam bilan mos kelishi kerak.<br>
         Bepul sinov muddati tugagach obuna kerak bo'ladi.<br>
         To'lovdan keyin <b>Obuna+</b> tugmasini bosing yoki ota-ona botda <code>/pay</code> ishlatsin.
       </div>
@@ -555,7 +556,7 @@
                   ? '<span class="badge badge-ok">Ulangan</span>'
                   : '<span class="badge badge-warn">Kutilmoqda</span>'}</td>
                 <td>${subBadge(p.subscription_status)}</td>
-                <td><code>/register ${p.id}</code></td>
+                <td><code>/register ${p.id} ${p.phone ? p.phone.replace(/\D/g,'').slice(-9) : '901234567'}</code></td>
                 <td class="actions">
                   <button class="btn btn-sm btn-sub" onclick="activateSub(${p.id})">Obuna+</button>
                   <button class="btn btn-sm btn-edit" onclick="editParent(${p.id})">✏️</button>

@@ -16,6 +16,16 @@ class Settings(BaseSettings):
     click_service_id: str = ""
     click_merchant_id: str = ""
     click_secret_key: str = ""
+    # Turniket/Face ID webhook — vergul bilan IP lar (bo'sh = hamma ruxsat, mahalliy test uchun)
+    turnstile_ip_whitelist: str = ""
+    # nginx/Cloudflare orqasida haqiqiy IP ni olish
+    trust_proxy_headers: bool = False
+
+    @property
+    def turnstile_allowed_ips(self) -> frozenset[str]:
+        if not self.turnstile_ip_whitelist.strip():
+            return frozenset()
+        return frozenset(ip.strip() for ip in self.turnstile_ip_whitelist.split(",") if ip.strip())
 
 
 settings = Settings()

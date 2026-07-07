@@ -14,12 +14,20 @@ from app.services.telegram import TelegramService
 logger = logging.getLogger(__name__)
 
 
+from app.utils.security import generate_access_token
+
+
 class PaymentService:
     def __init__(self) -> None:
         self.tg = TelegramService()
 
     async def create_order(self, db: AsyncSession, parent: Parent, s: AppSettings) -> PaymentOrder:
-        order = PaymentOrder(parent_id=parent.id, amount=s.subscription_price, currency=s.currency)
+        order = PaymentOrder(
+            parent_id=parent.id,
+            access_token=generate_access_token(),
+            amount=s.subscription_price,
+            currency=s.currency,
+        )
         db.add(order)
         await db.commit()
         await db.refresh(order)
@@ -34,7 +42,7 @@ class PaymentService:
                 f"&merchant_id={settings.click_merchant_id}&amount={order.amount}"
                 f"&transaction_param={order.id}"
             )
-        return f"{settings.app_base_url.rstrip('/')}/pay/{order.id}"
+        return f"{settings.app_base_url.rstrip('/')}/pay/{order.access_token}"
 
     def pay_message(self, order: PaymentOrder, cfg: AppSettings) -> str:
         lines = [

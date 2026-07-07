@@ -11,6 +11,7 @@ class PaymentOrder(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     parent_id: Mapped[int] = mapped_column(ForeignKey("parents.id"), index=True)
+    access_token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     amount: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(10), default="UZS")
     status: Mapped[str] = mapped_column(String(20), default="pending")

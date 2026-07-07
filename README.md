@@ -12,6 +12,14 @@ Turniket integratsiyasi + ota-onalarga Telegram xabar + obuna tizimi.
 5. http://localhost:8000/admin
 ```
 
+## Xavfsizlik (v3.1)
+
+- `/register <id> <telefon>` — telefon raqami tekshiriladi
+- `TURNSTILE_IP_WHITELIST` — faqat turniket IP laridan webhook
+- To'lov havolasi tasodifiy token: `/pay/abc123...`
+- PostgreSQL + `scripts/backup_db.py` zaxira nusxa
+- Production: `deploy/PRODUCTION.md` (HTTPS, nginx, Let's Encrypt)
+
 ## Imkoniyatlar
 
 - Turniket webhook — kirish/chiqish qayd etish
@@ -25,7 +33,7 @@ Turniket integratsiyasi + ota-onalarga Telegram xabar + obuna tizimi.
 
 | Buyruq | Vazifa |
 |--------|--------|
-| /register 1 | Ro'yxatdan o'tish |
+| /register 1 901234567 | Ro'yxatdan o'tish (ID + telefon) |
 | /pay | To'lov (avtomatik obuna) |
 | /status | Obuna holati |
 | /mystudents | Farzandlar |
@@ -38,6 +46,12 @@ Header: X-Webhook-Secret: ...
 Body: {"card_id":"001","device_code":"GATE_IN_01","direction":"in"}
 ```
 
+`.env` da `TURNSTILE_IP_WHITELIST=192.168.1.10` — faqat shu IP dan qabul qiladi.
+
+## Production
+
+Batafsil: **deploy/PRODUCTION.md**
+
 ## Fayllar
 
 | Fayl | Vazifa |
@@ -45,3 +59,5 @@ Body: {"card_id":"001","device_code":"GATE_IN_01","direction":"in"}
 | ishga_tushirish.bat | Dasturni ishga tushirish |
 | TOXTATISH.bat | To'xtatish |
 | scripts/seed.py | Namuna ma'lumotlar |
+| scripts/backup_db.py | DB zaxira nusxasi |
+| deploy/PRODUCTION.md | HTTPS, PostgreSQL, nginx |

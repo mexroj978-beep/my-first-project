@@ -1,18 +1,25 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
 from app.schemas import TurnstileEvent, TurnstileResponse
 from app.services.attendance import AttendanceService
+from app.utils.security import check_turnstile_ip
 
 router = APIRouter(prefix="/webhooks", tags=["Turniket"])
 
 
 @router.post("/turnstile", response_model=TurnstileResponse)
-async def turnstile(ev: TurnstileEvent, x: str = Header(..., alias="X-Webhook-Secret"), db: AsyncSession = Depends(get_db)):
+async def turnstile(
+    ev: TurnstileEvent,
+    request: Request,
+    x: str = Header(..., alias="X-Webhook-Secret"),
+    db: AsyncSession = Depends(get_db),
+):
     if x != settings.webhook_secret:
         raise HTTPException(401, "Noto'g'ri kalit")
+    check_turnstile_ip(request)
     svc = AttendanceService()
     att, msg, sent, name = await svc.process(db, ev)
     if not att:

@@ -35,8 +35,33 @@ async def _migrate_columns(conn) -> None:
         ):
             if name not in cols:
                 sync_conn.execute(text(ddl))
+        if "payments" in insp.get_table_names():
+            pcols = {c["name"] for c in insp.get_columns("payments")}
+            if "access_token" not in pcols:
+                sync_conn.execute(text("ALTER TABLE payments ADD COLUMN access_token VARCHAR(64)"))
 
     await conn.run_sync(_run)
+
+
+async def _backfill_payment_tokens() -> None:
+    from sqlalchemy import select
+
+    from app.models.payment import PaymentOrder
+    from app.utils.security import generate_access_token
+
+    async with SessionLocal() as db:
+        try:
+            r = await db.execute(select(PaymentOrder))
+            orders = list(r.scalars().all())
+            changed = False
+            for o in orders:
+                if not o.access_token:
+                    o.access_token = generate_access_token()
+                    changed = True
+            if changed:
+                await db.commit()
+        except Exception:
+            await db.rollback()
 
 
 async def init_db() -> None:
@@ -45,3 +70,4 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await _migrate_columns(conn)
+    await _backfill_payment_tokens()

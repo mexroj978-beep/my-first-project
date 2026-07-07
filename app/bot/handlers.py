@@ -12,6 +12,7 @@ from app.models.parent import Parent, StudentParent
 from app.models.student import Student
 from app.services.payment import PaymentService
 from app.services.subscription import SubscriptionService
+from app.utils.phone import format_phone, normalize_phone, phones_match
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "👋 <b>Assalomu alaykum!</b>\n\n"
         "Farzandingiz maktabga kirishi/chiqishini xabar qilaman.\n\n"
         "<b>Buyruqlar:</b>\n"
-        "/register &lt;id&gt; — Ro'yxatdan o'tish\n"
+        "/register &lt;id&gt; &lt;telefon&gt; — Ro'yxatdan o'tish\n"
         "/pay — Obuna to'lovi\n"
         "/status — Obuna holati\n"
         "/mystudents — Farzandlar\n"
@@ -33,7 +34,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def help_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "1. Admin sizni qo'shadi va ID beradi\n"
-        "2. <code>/register 5</code> yozing\n"
+        "2. <code>/register 5 901234567</code> yozing (ID + telefon)\n"
         "3. 3 kun bepul sinov\n"
         "4. Keyin <code>/pay</code> — to'lov, obuna avtomatik yoqiladi",
         parse_mode="HTML",
@@ -41,17 +42,36 @@ async def help_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def register(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not ctx.args:
-        return await update.message.reply_text("Misol: <code>/register 1</code>", parse_mode="HTML")
+    if len(ctx.args) < 2:
+        return await update.message.reply_text(
+            "📱 <b>Ro'yxatdan o'tish</b>\n\n"
+            "Misol: <code>/register 1 901234567</code>\n"
+            "Admin bergan ID va telefon raqamingizni yozing.",
+            parse_mode="HTML",
+        )
     try:
         pid = int(ctx.args[0])
     except ValueError:
         return await update.message.reply_text("❌ Noto'g'ri ID")
+    phone_input = ctx.args[1]
+    if not normalize_phone(phone_input):
+        return await update.message.reply_text(
+            "❌ Noto'g'ri telefon formati.\nMisol: <code>901234567</code> yoki <code>+998901234567</code>",
+            parse_mode="HTML",
+        )
     chat = update.effective_user.id
     async with SessionLocal() as db:
         p = await db.get(Parent, pid)
         if not p:
             return await update.message.reply_text("❌ ID topilmadi")
+        if p.phone:
+            if not phones_match(p.phone, phone_input):
+                return await update.message.reply_text(
+                    "❌ Telefon raqami mos kelmadi.\n"
+                    "Admin panelda kiritilgan raqam bilan bir xil bo'lishi kerak."
+                )
+        else:
+            p.phone = format_phone(phone_input)
         ex = await db.execute(select(Parent).where(Parent.telegram_chat_id == chat, Parent.id != pid))
         if ex.scalar_one_or_none():
             return await update.message.reply_text("❌ Bu hisob boshqa ota-onaga bog'langan")
